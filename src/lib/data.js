@@ -307,6 +307,96 @@ export const transactionDetail = {
   }
 };
 
+// Reconciliation — Statement List
+export const statements = [
+  {
+    id: 'stmt-23',
+    supplier: 'CRED001',
+    statementNumber: 'SRS9T101-STAS9T1D23',
+    fileName: 'CRED001_cleaned.pdf',
+    receivedAt: '04/12/2025',
+    statementDate: '01/12/2025',
+    statementTotal: '849.60',
+    reconciledCount: 11,
+    unreconciledCount: 0,
+    assignedUser: '',
+    status: 'Unreconciled'
+  },
+  {
+    id: '10498a51-4a92-4133-aa06-e70a5dd5c1db',
+    supplier: 'SUPPLIER TEST 8',
+    statementNumber: 'SRS9T101-STAS9T1D22',
+    fileName: '85a89cea-869b-44d6-833e-619a6041c4ef.pdf',
+    receivedAt: '04/12/2025',
+    statementDate: '01/09/2023',
+    statementTotal: '12,687.00',
+    reconciledCount: 19,
+    unreconciledCount: 1,
+    assignedUser: '',
+    status: 'Unreconciled'
+  }
+];
+
+// Reconciliation — Statement Detail
+export const statementDetail = {
+  id: '10498a51-4a92-4133-aa06-e70a5dd5c1db',
+  status: 'Unreconciled',
+  supplier: 'SUPPLIER TEST 8',
+  statementDate: '01/09/2023',
+  statementNumber: 'SRS9T101-STAS9T1D22',
+  capturedTotal: '£12,287.00',
+  statementEndDate: '31/10/2024',
+  assignedTo: 'Not Assigned',
+  assignedInitials: 'NA',
+  stats: {
+    calculatedStatementBalance: '£6,247.00',
+    valueDifference: '£-35.00',
+    calculatedDocumentBalance: '£6,212.00',
+    unreconciledItems: 2,
+    notListedOnStatement: '£300.00',
+    documentsNotFound: '£1,735.00',
+    positiveDifferences: '£35.00',
+    negativeDifferences: '£0.00',
+    inQueryDocumentTotal: '£450.00'
+  },
+  ledger: [
+    { count: null, label: 'Ledger Balance', value: '£4,727.05', bold: true },
+    { count: 1, label: 'Not Listed On Statement', value: '£300.00', valueClass: 'warn' },
+    { count: 2, label: 'Documents Not Submitted', value: '£1,735.00' },
+    { count: 0, label: 'Manual Adjustments/Accepted Differences', value: '£0.00' },
+    { count: 0, label: 'Paid', value: '£0.00' },
+    { count: 1, label: 'Tolerance', value: '£-0.05' },
+    { count: 1, label: 'In Query', value: '£50.00' },
+    { count: 0, label: 'In Open ECX Suspensions', value: '£0.00' },
+    { count: null, label: 'Calculated Document Balance', value: '£6,212.00', bold: true },
+    { count: null, label: 'Difference to Statement Balance', value: '£-35.00', bold: true, valueClass: 'warn' }
+  ],
+  transactions: [
+    { line: 1,  stType: 'INV', stNum: 'SRS9T101-INVS9T1D1',  stAmount: '300.00',    status: 'Matched',                       docType: 'INV', docNum: 'SRS9T101-INVS9T1D1',  order: 'SRS9T101', date: '02/08/2023', due: '29/08/2023', docAmount: '300.00' },
+    { line: 2,  stType: 'INV', stNum: 'SRS9T101-INVS9T1D2',  stAmount: '600.00',    status: 'Matched',                       docType: 'INV', docNum: 'SRS9T101-INVS9T1D2',  order: 'SRS9T101', tag: 'Waiting Credit Note', date: '02/08/2023', due: '29/08/2023', docAmount: '600.00' },
+    { line: 3,  stType: 'HII', stNum: 'SRS9T101-HIS9T1D3',   stAmount: '2,050.00',  status: 'Matched with Different Total',  docType: 'HII', docNum: 'SRS9T101-HIS9T1D3',   order: 'SRS9T101', date: '04/08/2023', due: '29/08/2023', docAmount: '2,025.00', editable: true },
+    { line: 4,  stType: 'INV', stNum: 'SRS9T101-INVS9T1D4',  stAmount: '1,625.00',  status: 'Not Matched',                   docMessage: 'Document Not Found' },
+    { line: 5,  stType: 'CRN', stNum: 'SRS9T101-CNS9T1D5',   stAmount: '-3,220.00', status: 'Matched',                       docType: 'CRN', docNum: 'SRS9T101-CNS9T1D5',   order: 'SRS9T101', date: '07/08/2023', due: '29/08/2023', docAmount: '-3,220.00' },
+    { line: 6,  stType: 'HII', stNum: 'SRS9T101-HIS9T1D6',   stAmount: '1,165.00',  status: 'Matched',                       docType: 'HII', docNum: 'SRS9T101-HIS9T1D6',   order: 'SRS9T101', tag: 'Missing Goods', date: '08/08/2023', due: '29/08/2023', docAmount: '1,165.00' },
+    { line: 7,  stType: 'INV', stNum: 'SRS9T101-INVS9T1D7',  stAmount: '500.00',    status: 'Query Raised',                  docType: 'INV', docNum: 'SRS9T101-INVS9T1D7',  order: 'SRS9T101', date: '10/08/2023', due: '29/08/2023', docAmount: '450.00' },
+    { line: 8,  stType: 'INV', stNum: 'SRS9T101-INVS9T1D8',  stAmount: '1,150.00',  status: 'Matched',                       docType: 'INV', docNum: 'SRS9T101-INVS9T1D8',  order: 'SRS9T101', date: '11/08/2023', due: '29/08/2023', docAmount: '1,150.00' },
+    { line: 9,  stType: 'PIV', stNum: 'SRS9T101-PIVS9T1D9',  stAmount: '300.00',    status: 'Matched',                       docType: 'PIV', docNum: 'SRS9T101-PIVS9T1D9',  order: 'SRS9T101', date: '14/08/2023', due: '29/08/2023', docAmount: '300.00' },
+    { line: 10, stType: 'INV', stNum: 'SRS9T101-INVS9T1D10', stAmount: '462.00',    status: 'Matched within Tolerance',      docType: 'INV', docNum: 'SRS9T101-INVS9T1D10', order: 'SRS9T101', date: '15/08/2023', due: '29/08/2023', docAmount: '462.05' },
+    { line: 11, stType: 'INV', stNum: 'SRS9T101-INVS9T1D12', stAmount: '100.00',    status: 'Matched',                       docType: 'INV', docNum: 'SRS9T101-INVS9T1D12', order: 'SRS9T101', date: '12/08/2023', due: '29/08/2023', docAmount: '100.00' },
+    { line: 12, stType: 'INV', stNum: 'SRS9T101-INVS9T1D13', stAmount: '55.00',     status: 'Matched',                       docType: 'INV', docNum: 'SRS9T101-INVS9T1D13', order: 'SRS9T101', date: '15/08/2023', due: '29/08/2023', docAmount: '55.00' },
+    { line: 13, stType: 'INV', stNum: 'SRS9T101-INVS9T1D14', stAmount: '90.00',     status: 'Matched with Different Total',  docType: 'INV', docNum: 'SRS9T101-INVS9T1D14', order: 'SRS9T101', date: '15/08/2023', due: '29/08/2023', docAmount: '80.00' },
+    { line: 14, stType: 'INV', stNum: 'SRS9T101-INVS9T1D15', stAmount: '110.00',    status: 'Not Matched',                   docMessage: 'Document Not Found' },
+    { line: 15, stType: 'INV', stNum: 'SRS9T101-INVS9T1D16', stAmount: '200.00',    status: 'Matched',                       docType: 'INV', docNum: 'SRS9T101-INVS9T1D16', order: 'SRS9T101', date: '16/08/2023', due: '29/08/2023', docAmount: '200.00' },
+    { line: 16, stType: 'INV', stNum: 'SRS9T101-INVS9T1D17', stAmount: '200.00',    status: 'Matched',                       docType: 'INV', docNum: 'SRS9T101-INVS9T1D17', order: 'SRS9T101', date: '17/08/2023', due: '29/08/2023', docAmount: '200.00' },
+    { line: 17, stType: 'INV', stNum: 'SRS9T101-INVS9T1D18', stAmount: '150.00',    status: 'Matched',                       docType: 'INV', docNum: 'SRS9T101-INVS9T1D18', order: 'SRS9T101', date: '19/08/2023', due: '29/08/2023', docAmount: '150.00' },
+    { line: 18, stType: 'INV', stNum: 'SRS9T101-INVS9T1D19', stAmount: '250.00',    status: 'Matched',                       docType: 'INV', docNum: 'SRS9T101-INVS9T1D19', order: 'SRS9T101', date: '20/08/2023', due: '29/08/2023', docAmount: '250.00' },
+    { line: 19, stType: 'INV', stNum: 'SRS9T101-INVS9T1D20', stAmount: '50.00',     status: 'Matched',                       docType: 'INV', docNum: 'SRS9T101-INVS9T1D20', order: 'SRS9T101', date: '20/08/2023', due: '29/08/2023', docAmount: '50.00' },
+    { line: 20, stType: 'INV', stNum: 'SRS9T101-INVS9T1D21', stAmount: '110.00',    status: 'Matched',                       docType: 'INV', docNum: 'SRS9T101-INVS9T1D21', order: 'SRS9T101', date: '20/08/2023', due: '29/08/2023', docAmount: '110.00' },
+    // extra row: not found on statement, document exists
+    { line: null, statementMessage: 'Not Found on Statement', status: 'Query Raised',            docType: 'INV', docNum: 'SRS9T101-INVS9T1D11', order: 'SRS9T101', date: '12/08/2023', due: '29/08/2023', docAmount: '300.00' }
+  ]
+};
+
 // Customers shown in the filter pane
 export const customers = [
   'Adama',

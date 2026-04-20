@@ -10,7 +10,7 @@
     { label: 'Fraud', href: '/fraud', isNew: true },
     { label: 'Matching Data', href: '/transactions/matching' },
     { label: 'Suspensions', href: '/transactions/suspensions' },
-    { label: 'Reconciliation', href: '/transactions/reconciliation' },
+    { label: 'Reconciliation', href: '/reconciliation' },
     { label: 'Query', href: '/transactions/query' }
   ];
 
@@ -30,6 +30,14 @@
 
   function isListActive(pathname) {
     return pathname === '/transactions' || pathname.startsWith('/transactions/');
+  }
+  function isReconActive(pathname) {
+    return pathname === '/reconciliation' || pathname.startsWith('/reconciliation/');
+  }
+  function isActiveFor(item, pathname) {
+    if (item.label === 'All Transactions') return isListActive(pathname);
+    if (item.label === 'Reconciliation') return isReconActive(pathname);
+    return pathname === item.href;
   }
 </script>
 
@@ -55,7 +63,7 @@
 
     <ul class="items">
       {#each transactionsItems as item}
-        {@const active = item.label === 'All Transactions' ? isListActive($page.url.pathname) : $page.url.pathname === item.href}
+        {@const active = isActiveFor(item, $page.url.pathname)}
         <li class:active>
           {#if active}
             <span class="arrow" aria-hidden="true">
