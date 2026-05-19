@@ -96,43 +96,60 @@
     </div>
 
     <div class="eva-conversation">
-      <div class="eva-message">
-        <div class="eva-message-content">
-          <div class="eva-message-text">
-            {#if contextCustomer}
-              You are asking about activity with <strong>{contextCustomer}</strong>.
-            {/if}
-            Ask your question and I will try to answer it from the invoice, payment, remittance, and query data
-            available in Community.
+      <div class="chat-row eva-row">
+        <img class="chat-avatar eva-avatar" src="/eva/EVA-Circle.png" alt="EVA" />
+        <div class="chat-bubble-stack">
+          <div class="eva-message-content">
+            <div class="eva-message-text">
+              {#if contextCustomer}
+                You are asking about activity with <strong>{contextCustomer}</strong>.
+              {/if}
+              Ask your question and I will try to answer it from the invoice, payment, remittance, and query data
+              available in Community.
+            </div>
           </div>
+          <div class="eva-message-timestamp">12:32 pm</div>
         </div>
-        <div class="eva-message-timestamp">12:32 pm</div>
       </div>
 
       {#if !conversation.length}
-        <div class="eva-message">
-          <div class="eva-message-content">
-            <div class="eva-message-text">{promptText || 'Ask me anything about your transactions.'}</div>
+        <div class="chat-row eva-row">
+          <img class="chat-avatar eva-avatar" src="/eva/EVA-Circle.png" alt="EVA" />
+          <div class="chat-bubble-stack">
+            <div class="eva-message-content">
+              <div class="eva-message-text">{promptText || 'Ask me anything about your transactions.'}</div>
+            </div>
+            <div class="eva-message-timestamp">12:32 pm</div>
           </div>
-          <div class="eva-message-timestamp">12:32 pm</div>
         </div>
       {/if}
 
       {#each conversation as item}
         <div class:item.role={item.role} class="chat-row" class:user-row={item.role === 'user'} class:eva-row={item.role === 'eva'}>
-          <div class:eva-message-content={item.role === 'eva'} class:user-message-content={item.role === 'user'}>
-            <div class:eva-message-text={item.role === 'eva'} class:user-message-text={item.role === 'user'}>{item.text}</div>
+          {#if item.role === 'eva'}
+            <img class="chat-avatar eva-avatar" src="/eva/EVA-Circle.png" alt="EVA" />
+          {/if}
+          <div class="chat-bubble-stack">
+            <div class:eva-message-content={item.role === 'eva'} class:user-message-content={item.role === 'user'}>
+              <div class:eva-message-text={item.role === 'eva'} class:user-message-text={item.role === 'user'}>{item.text}</div>
+            </div>
+            <div class:eva-message-timestamp={item.role === 'eva'} class:user-message-timestamp={item.role === 'user'}>{item.time}</div>
           </div>
-          <div class:eva-message-timestamp={item.role === 'eva'} class:user-message-timestamp={item.role === 'user'}>{item.time}</div>
+          {#if item.role === 'user'}
+            <span class="chat-avatar user-avatar" aria-hidden="true">AF</span>
+          {/if}
         </div>
       {/each}
 
       {#if isTyping}
-        <div class="eva-message">
-          <div class="eva-message-content typing-bubble">
-            <span></span><span></span><span></span>
+        <div class="chat-row eva-row">
+          <img class="chat-avatar eva-avatar" src="/eva/EVA-Circle.png" alt="EVA" />
+          <div class="chat-bubble-stack">
+            <div class="eva-message-content typing-bubble">
+              <span></span><span></span><span></span>
+            </div>
+            <div class="eva-message-timestamp">EVA is typing…</div>
           </div>
-          <div class="eva-message-timestamp">EVA is typing…</div>
         </div>
       {/if}
     </div>
@@ -267,18 +284,46 @@
     max-width: 80%;
   }
   .chat-row {
-    display: grid;
-    gap: 5px;
-    max-width: 80%;
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    max-width: 85%;
     width: fit-content;
   }
   .user-row {
-    justify-self: end;
-    justify-items: end;
+    align-self: flex-end;
+    flex-direction: row;
     text-align: right;
   }
   .eva-row {
-    justify-self: start;
+    align-self: flex-start;
+  }
+  .chat-bubble-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    min-width: 0;
+  }
+  .user-row .chat-bubble-stack {
+    align-items: flex-end;
+  }
+  .chat-avatar {
+    flex: 0 0 auto;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    object-fit: cover;
+  }
+  .user-avatar {
+    background: var(--navy);
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
   }
   .eva-message-content {
     background: #fff;

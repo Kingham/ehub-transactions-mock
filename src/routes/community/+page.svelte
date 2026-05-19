@@ -2506,40 +2506,37 @@
         </section>
       {:else}
         <article class="subpanel sender-assistant-panel">
-          <div class="section-head">
-            <div>
-              <span class="section-kicker">Ask EVA</span>
-              <h3>Ask a question, chase an invoice, or raise a query</h3>
-            </div>
-            <button type="button" class="ghost-btn solid" on:click={() => openEvaAssistant('question')}>Open EVA</button>
+          <div class="eva-brand-col">
+            <img src="/eva/EVA-Circle.png" alt="EVA" class="eva-circle" />
+            <span class="section-kicker">Ask EVA</span>
           </div>
 
-          <div class="sender-assistant-layout">
-            <div>
-              <p class="assistant-copy">
-                Use EVA to ask about invoice status, payment timing, remittances, or supporting documents. EVA will
-                try to answer from the live data available across your customers. If an answer is not available, EVA
-                will summarise the conversation so you can raise a query without repeating yourself.
-              </p>
+          <div class="sender-assistant-main">
+            <h3 class="sender-assistant-heading">Ask a question, chase an invoice, or raise a query</h3>
+            <p class="assistant-copy">
+              Use EVA to ask about invoice status, payment timing, remittances, or supporting documents. EVA will
+              try to answer from the live data available across your customers. If an answer is not available, EVA
+              will summarise the conversation so you can raise a query without repeating yourself.
+            </p>
 
-              <div class="chip-list">
-                <button type="button" class="pill-chip" on:click={() => openEvaAssistant('question', 'Where is invoice INV-24084?')}>Where is invoice INV-24084?</button>
-                <button type="button" class="pill-chip" on:click={() => openEvaAssistant('question', 'When is payment expected?')}>When is payment expected?</button>
-                <button type="button" class="pill-chip" on:click={() => openEvaAssistant('question', 'Can I get the remittance?')}>Can I get the remittance?</button>
-              </div>
+            <div class="chip-list">
+              <button type="button" class="ghost-btn solid" on:click={() => openEvaAssistant('question')}>Open EVA</button>
+              <button type="button" class="pill-chip" on:click={() => openEvaAssistant('question', 'Where is invoice INV-24084?')}>Where is invoice INV-24084?</button>
+              <button type="button" class="pill-chip" on:click={() => openEvaAssistant('question', 'When is payment expected?')}>When is payment expected?</button>
+              <button type="button" class="pill-chip" on:click={() => openEvaAssistant('question', 'Can I get the remittance?')}>Can I get the remittance?</button>
             </div>
+          </div>
 
-            <div class="assistant-sidecard">
-              <span class="hero-label">Current query destination</span>
-              <label class="assistant-customer-select">
-                <select bind:value={senderAssistantCustomer}>
-                  {#each currentSenderCustomerBreakdown as item}
-                    <option value={item.customer}>{item.customer}</option>
-                  {/each}
-                </select>
-              </label>
-              <span class="hero-note">If EVA cannot close the journey, the summary can be raised straight to this customer.</span>
-            </div>
+          <div class="assistant-sidecard">
+            <span class="hero-label">Current query destination</span>
+            <label class="assistant-customer-select">
+              <select bind:value={senderAssistantCustomer}>
+                {#each currentSenderCustomerBreakdown as item}
+                  <option value={item.customer}>{item.customer}</option>
+                {/each}
+              </select>
+            </label>
+            <span class="hero-note">If EVA cannot close the journey, the summary can be raised straight to this customer.</span>
           </div>
         </article>
 
@@ -3863,7 +3860,11 @@
   .reason-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .focus-list { gap: 10px; }
   .focus-item { padding: 14px 16px; border-radius: 14px; background: linear-gradient(180deg, #f6fbfb 0%, #fff 100%); border: 1px solid var(--border); color: var(--navy); font-weight: 600; }
-  .sender-assistant-panel { margin-bottom: 18px; }
+  .sender-assistant-panel { margin-bottom: 18px; display: grid; grid-template-columns: auto minmax(0, 1fr) minmax(220px, 0.5fr); gap: 20px; align-items: center; }
+  .eva-brand-col { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+  .eva-brand-col .eva-circle { display: block; width: 72px; height: 72px; }
+  .sender-assistant-main { min-width: 0; }
+  .sender-assistant-heading { margin: 0 0 8px; }
   .sender-assistant-layout { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(260px, 0.75fr); gap: 16px; align-items: stretch; }
   .assistant-copy { margin: 0 0 12px; color: var(--text-dim); line-height: 1.6; }
   .pill-chip {

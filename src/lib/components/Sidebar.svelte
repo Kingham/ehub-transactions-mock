@@ -130,7 +130,7 @@
       </svg>
     </span>
     <div class="user-info">
-      <div class="user-name">Austin Cheetham</div>
+      <div class="user-name">Andrew Froude</div>
       <button class="logout">Log Out</button>
     </div>
   </div>
