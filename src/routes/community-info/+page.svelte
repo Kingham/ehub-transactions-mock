@@ -1,15 +1,15 @@
 <script>
-  import { fraudFeatureCatalog, fraudSummaryMetrics } from '$lib/data.js';
+  import { communityFeatureCatalog, communitySummaryMetrics } from '$lib/data.js';
 
   const spotlightItems = [
-    'Operational dashboard for payment and order risk intervention',
-    'Embedded fraud signals inside modules such as Statement Reconciliation, not just in a standalone workspace',
-    'Supplier and customer risk worklists with explainable scoring, configurable thresholds, and full audit trail'
+    'Shared supplier and customer visibility across invoices, orders, payments, and delivery milestones',
+    'External self-service tracking, messaging, and document access embedded into the operational transaction flow',
+    'A future-facing community layer for notifications, role-managed collaboration, analytics, and AI assistance'
   ];
 </script>
 
 <svelte:head>
-  <title>Open ECX Fraud Module</title>
+  <title>Open ECX Community Module</title>
 </svelte:head>
 
 <div class="overview-shell">
@@ -22,22 +22,22 @@
           alt="Open ECX"
         />
         <nav class="module-switch">
-          <a class="switch-link active" href="/">Fraud</a>
-          <a class="switch-link" href="/community-info">Community</a>
+          <a class="switch-link" href="/">Fraud</a>
+          <a class="switch-link active" href="/community-info">Community</a>
         </nav>
       </div>
       <div class="hero-actions">
         <a class="map-link" href="/module-maps">View mind maps</a>
-        <a class="enter-app" href="/fraud">Open module</a>
+        <a class="enter-app" href="/community">Open module</a>
       </div>
     </div>
 
     <div class="hero-grid">
       <div>
-        <span class="eyebrow">Fraud module overview</span>
-        <h1>Fraud controls across suppliers, invoices, payments, customers, and orders.</h1>
+        <span class="eyebrow">Community module overview</span>
+        <h1>Shared visibility, communication, and self-service across invoices, payments, orders, and delivery events.</h1>
         <p>
-          This page is a concise internal overview of how Fraud sits across the platform. The working screens remain embedded inside each operational module, while this page summarises the capability set and operating model.
+          This page is a concise internal overview of how Community gives suppliers and customers controlled visibility into the lifecycle of their transactions. The working screens remain operational, while this page summarises the capability set and experience.
         </p>
 
         <div class="spotlight-list">
@@ -50,7 +50,7 @@
       <div class="hero-panel">
         <span class="panel-label">Module outcomes</span>
         <div class="hero-metrics">
-          {#each fraudSummaryMetrics as metric}
+          {#each communitySummaryMetrics as metric}
             <div class="mini-metric">
               <span>{metric.title}</span>
               <strong>{metric.value}</strong>
@@ -62,7 +62,7 @@
   </header>
 
   <main class="content">
-    {#each fraudFeatureCatalog as group}
+    {#each communityFeatureCatalog as group}
       <section class="feature-section">
         <div class="section-head">
           <span class="section-mark"></span>
@@ -86,8 +86,8 @@
   .overview-shell {
     min-height: 100vh;
     background:
-      radial-gradient(circle at top left, rgba(235, 96, 40, 0.1), transparent 26%),
-      linear-gradient(180deg, #f7f8fa 0%, #f1f4f8 100%);
+      radial-gradient(circle at top left, rgba(12, 133, 125, 0.12), transparent 28%),
+      linear-gradient(180deg, #f5f7fa 0%, #eef3f7 100%);
     color: var(--text);
   }
 
@@ -107,6 +107,12 @@
     justify-content: space-between;
     gap: 16px;
     margin-bottom: 28px;
+  }
+
+  .hero-logo {
+    width: 150px;
+    height: auto;
+    display: block;
   }
 
   .hero-brand {
@@ -144,14 +150,8 @@
   }
 
   .switch-link.active {
-    background: var(--navy);
+    background: #0b7f77;
     color: #fff;
-  }
-
-  .hero-logo {
-    width: 150px;
-    height: auto;
-    display: block;
   }
 
   .enter-app {
@@ -191,7 +191,7 @@
 
   .eyebrow {
     display: inline-block;
-    color: var(--orange);
+    color: #0b7f77;
     text-transform: uppercase;
     letter-spacing: 0.1em;
     font-size: 10px;
@@ -203,7 +203,7 @@
     color: var(--navy);
     font-size: 42px;
     line-height: 1.08;
-    max-width: 840px;
+    max-width: 860px;
   }
 
   .hero p {
@@ -298,7 +298,7 @@
     width: 10px;
     height: 10px;
     border-radius: 50%;
-    background: var(--orange);
+    background: #0b7f77;
   }
 
   h2 {

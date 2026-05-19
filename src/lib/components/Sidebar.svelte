@@ -8,10 +8,10 @@
     { label: 'Dashboard', href: '/transactions/dashboard' },
     { label: 'All Transactions', href: '/transactions' },
     { label: 'Fraud', href: '/fraud', isNew: true },
+    { label: 'Community', href: '/community', isNew: true },
     { label: 'Matching Data', href: '/transactions/matching' },
     { label: 'Suspensions', href: '/transactions/suspensions' },
-    { label: 'Reconciliation', href: '/reconciliation' },
-    { label: 'Query', href: '/transactions/query' }
+    { label: 'Reconciliation', href: '/reconciliation' }
   ];
 
   const adminItems = [
@@ -43,7 +43,9 @@
 
 <aside class="sidebar">
   <div class="brand">
-    <img class="logo" src={LOGO_URL} alt="openECX" />
+    <a class="brand-link" href="/" aria-label="Open ECX overview">
+      <img class="logo" src={LOGO_URL} alt="openECX" />
+    </a>
     <div class="environment env-test">Test System</div>
   </div>
 
@@ -170,6 +172,10 @@
     width: 140px;
     height: auto;
     display: block;
+  }
+
+  .brand-link {
+    display: inline-flex;
   }
 
   .environment {

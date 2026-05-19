@@ -1,6 +1,8 @@
 <script>
-  import { statementDetail } from '$lib/data.js';
+  import { fraudSettings, statementDetail } from '$lib/data.js';
   const d = statementDetail;
+  let selectedRiskExplain = null;
+  let highlightedLines = [];
 
   function statusClass(s) {
     if (!s) return '';
@@ -11,7 +13,134 @@
     if (s === 'Query Raised') return 'query';
     return '';
   }
+
+  function fraudToneClass(tone) {
+    if (tone === 'critical') return 'critical';
+    if (tone === 'high') return 'high';
+    if (tone === 'medium') return 'medium';
+    return '';
+  }
+
+  function rowFraudSignal(row) {
+    if (row.line === null && row.statementMessage === 'Not Found on Statement') {
+      return d.fraud.rowSignals.docNotOnStatement;
+    }
+    return d.fraud.rowSignals[row.line] || null;
+  }
+
+  function openRiskExplain(payload) {
+    selectedRiskExplain = payload;
+  }
+
+  function closeRiskExplain() {
+    selectedRiskExplain = null;
+  }
+
+  function impactValue(impact) {
+    const numeric = Number.parseInt(String(impact).replace(/[^0-9-]/g, ''), 10);
+    return Number.isNaN(numeric) ? 0 : numeric;
+  }
+
+  function overallRiskExplain() {
+    return {
+      kind: 'score',
+      title: 'Statement reconciliation risk score',
+      level: d.fraud.riskLevel,
+      score: d.fraud.riskScore,
+      drivers: d.fraud.indicators.map((indicator, index) => ({
+        label: indicator.title,
+        impact: index === 0 ? '+28' : index === 1 ? '+34' : '+12',
+        detail: indicator.detail
+      }))
+    };
+  }
+
+  function amountComparison(row) {
+    if (row.docMessage) return `Statement ${row.stAmount} with no matching document in platform.`;
+    if (row.docAmount && row.stAmount && row.docAmount !== row.stAmount) {
+      return `Statement ${row.stAmount} compared with document ${row.docAmount}.`;
+    }
+    if (row.docAmount) return `Statement and document both show ${row.docAmount}.`;
+    return 'Amount comparison unavailable.';
+  }
+
+  function rowRiskExplain(signal, row) {
+    const nextAction =
+      signal.label === 'Value outlier'
+        ? 'Validate the commercial reason for the uplift before statement sign-off.'
+        : signal.label === 'Correction pattern'
+          ? 'Review the repeated amendment pattern and decide whether a fraud case should stay open.'
+          : 'Check whether this adjusted invoice fits an established supplier pattern or needs escalation.';
+
+    const actions =
+      signal.label === 'Value outlier'
+        ? [
+            { label: 'Create fraud case', tone: 'primary' },
+            { label: 'Raise supplier query', tone: 'secondary' }
+          ]
+        : [
+            { label: 'Review fraud case', tone: 'primary' },
+            { label: 'Raise supplier query', tone: 'secondary' }
+          ];
+
+    return {
+      kind: 'line',
+      title: row.stNum || row.docNum || `Line ${row.line}`,
+      level: signal.tone.charAt(0).toUpperCase() + signal.tone.slice(1),
+      score: signal.tone === 'critical' ? 89 : signal.tone === 'high' ? 76 : 58,
+      nextAction,
+      actions,
+      facts: [
+        { label: 'Statement line', value: row.line ? `Line ${row.line}` : 'Not on statement line list' },
+        { label: 'Reconciliation status', value: row.status || 'Not available' },
+        { label: 'Document reference', value: row.docNum || row.docMessage || 'No matching document' },
+        { label: 'Amount check', value: amountComparison(row) }
+      ],
+      drivers: [
+        { label: signal.label, impact: signal.tone === 'critical' ? '+32' : '+20', detail: signal.detail },
+        { label: 'Why this line needs review', impact: '+12', detail: amountComparison(row) },
+        { label: 'What to check next', impact: '+8', detail: nextAction }
+      ]
+    };
+  }
+
+  function jumpToFraudDetail(targetLines = []) {
+    if (!targetLines.length) return;
+
+    highlightedLines = [...targetLines];
+
+    const firstTarget = targetLines[0];
+    const row = document.getElementById(`statement-line-${firstTarget}`);
+    row?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+
+  function clearHighlightedLines() {
+    highlightedLines = [];
+  }
+
+  function handleWindowClick(event) {
+    if (!highlightedLines.length) return;
+
+    const target = event.target;
+    if (
+      target instanceof Element &&
+      (target.closest('.fraud-indicator') ||
+        target.closest('.fraud-action-card') ||
+        target.closest('.grid-row.row-highlight'))
+    ) {
+      return;
+    }
+
+    clearHighlightedLines();
+  }
+
+  $: explainedScore = selectedRiskExplain
+    ? selectedRiskExplain.drivers.reduce((total, driver) => total + impactValue(driver.impact), 0)
+    : 0;
+  $: residualScore = selectedRiskExplain ? selectedRiskExplain.score - explainedScore : 0;
 </script>
+
+<svelte:window on:click={handleWindowClick} />
 
 <section class="recon-head panel">
   <div class="head-left">
@@ -41,6 +170,49 @@
   <button class="tab active">Statement Reconciliation</button>
   <button class="tab">Payment Reconciliation</button>
 </div>
+
+<section class="fraud-banner panel">
+  <div class="fraud-banner-head">
+    <button class="fraud-score-card clickable {fraudToneClass(d.fraud.riskLevel.toLowerCase())}" on:click={() => openRiskExplain(overallRiskExplain())}>
+      <span class="small-dim">Overall risk level</span>
+      <span class="fraud-level">{d.fraud.riskLevel}</span>
+      <strong>{d.fraud.riskScore}</strong>
+      <span class="fraud-score-caption">Risk score</span>
+    </button>
+    <div class="fraud-indicators-wrap">
+      <span class="fraud-kicker">Fraud Signals</span>
+      <div class="fraud-indicators">
+        {#each d.fraud.indicators as indicator}
+          <button
+            type="button"
+            class="fraud-indicator clickable {fraudToneClass(indicator.tone)}"
+            on:click={() => jumpToFraudDetail(indicator.targetLines)}
+          >
+            <div class="indicator-top">
+              <span class="severity-pill {fraudToneClass(indicator.tone)}">{indicator.title}</span>
+              <strong>{indicator.value}</strong>
+            </div>
+            <p>{indicator.detail}</p>
+          </button>
+        {/each}
+      </div>
+    </div>
+  </div>
+
+  <div class="fraud-actions">
+    {#each d.fraud.actions as action}
+      <button
+        type="button"
+        class="fraud-action-card clickable"
+        on:click={() => jumpToFraudDetail(action.targetLines)}
+      >
+        <strong>{action.title}</strong>
+        <span>{action.owner}</span>
+        <p>{action.note}</p>
+      </button>
+    {/each}
+  </div>
+</section>
 
 <div class="body-grid">
   <div class="body-col">
@@ -270,12 +442,17 @@
   <!-- Transactions grid -->
   <div class="tx-grid-wrap">
     <div class="grid-heads">
+      <div class="grid-spacer" aria-hidden="true"></div>
       <div class="grid-col stmt">Statement</div>
       <div class="grid-col filter">Filter</div>
       <div class="grid-col docs">Documents</div>
     </div>
     {#each d.transactions as t}
-      <div class="grid-row">
+      <div
+        id={t.line !== null ? `statement-line-${t.line}` : undefined}
+        class="grid-row"
+        class:row-highlight={t.line !== null && highlightedLines.includes(t.line)}
+      >
         <label class="sel-cell"><input type="checkbox" /></label>
 
         <!-- Statement side -->
@@ -285,7 +462,14 @@
           <div class="stmt-cell">
             <span class="line-no">{t.line}</span>
             <span class="type-pill">{t.stType}</span>
-            <span class="stmt-num">{t.stNum}</span>
+            <div class="stmt-reference">
+              <span class="stmt-num">{t.stNum}</span>
+              {#if rowFraudSignal(t)}
+                <button class="row-fraud-inline clickable {fraudToneClass(rowFraudSignal(t).tone)}" on:click={() => openRiskExplain(rowRiskExplain(rowFraudSignal(t), t))}>
+                  {rowFraudSignal(t).label}
+                </button>
+              {/if}
+            </div>
             <span class="stmt-amount">{t.stAmount}</span>
           </div>
         {/if}
@@ -326,7 +510,201 @@
   </div>
 </section>
 
+{#if selectedRiskExplain}
+  <div
+    class="risk-modal-backdrop"
+    role="button"
+    tabindex="0"
+    aria-label="Close risk explanation"
+    on:click={closeRiskExplain}
+    on:keydown={(event) => (event.key === 'Enter' || event.key === ' ' ? closeRiskExplain() : null)}
+  >
+    <div
+      class="risk-modal"
+      role="dialog"
+      tabindex="0"
+      aria-modal="true"
+      aria-labelledby="risk-explain-title"
+      on:click|stopPropagation
+      on:keydown|stopPropagation={() => {}}
+    >
+      <div class="risk-modal-head">
+        <div>
+          <span class="fraud-kicker">Risk explanation</span>
+          <h2 id="risk-explain-title">{selectedRiskExplain.title}</h2>
+        </div>
+        <div class="risk-modal-meta">
+          <span class="severity-pill {fraudToneClass(selectedRiskExplain.level.toLowerCase())}">{selectedRiskExplain.level}</span>
+          <span class="risk-score-chip">{selectedRiskExplain.score}</span>
+          <button type="button" class="close-btn" aria-label="Close" on:click={closeRiskExplain}>×</button>
+        </div>
+      </div>
+
+      {#if selectedRiskExplain.kind === 'line'}
+        <div class="risk-detail-grid">
+          {#each selectedRiskExplain.facts as fact}
+            <article class="risk-driver-card">
+              <span class="small-dim">{fact.label}</span>
+              <p class="fact-value">{fact.value}</p>
+            </article>
+          {/each}
+        </div>
+
+        <article class="risk-driver-card next-action-card">
+          <span class="small-dim">Next action</span>
+          <p class="fact-value">{selectedRiskExplain.nextAction}</p>
+          <div class="modal-action-row">
+            {#each selectedRiskExplain.actions as action}
+              <button class:secondary={action.tone === 'secondary'} class="modal-action-btn">
+                {action.label}
+              </button>
+            {/each}
+          </div>
+        </article>
+      {/if}
+
+      <details class="methodology-collapse">
+        <summary>How scoring works</summary>
+        <article class="risk-driver-card methodology-helper">
+          <div class="indicator-top">
+            <strong>How to read this score</strong>
+            <span class="risk-score-chip">{fraudSettings.scoringMethodology.scale}</span>
+          </div>
+          <p>{fraudSettings.scoringMethodology.baseline}</p>
+          <p>{fraudSettings.scoringMethodology.summary}</p>
+          {#if residualScore !== 0}
+            <p>
+              Displayed drivers account for {explainedScore} of {selectedRiskExplain.score}. {fraudSettings.scoringMethodology.residualLabel}:
+              {residualScore > 0 ? ' +' : ' '}{residualScore}.
+            </p>
+            <p>{fraudSettings.scoringMethodology.residualDetail}</p>
+          {/if}
+        </article>
+      </details>
+
+      <div class="risk-driver-list">
+        {#each selectedRiskExplain.drivers as driver}
+          <article class="risk-driver-card">
+            <div class="indicator-top">
+              <strong>{driver.label}</strong>
+              <span class="impact-chip">{driver.impact}</span>
+            </div>
+            <p>{driver.detail}</p>
+          </article>
+        {/each}
+      </div>
+    </div>
+  </div>
+{/if}
+
 <style>
+  .fraud-banner {
+    padding: 18px;
+    margin-bottom: 14px;
+    border: 1px solid #f1d8c8;
+    background: linear-gradient(180deg, #fff 0%, #fff8f4 100%);
+  }
+  .fraud-banner-head {
+    display: grid;
+    grid-template-columns: 220px minmax(0, 1fr);
+    gap: 16px;
+    align-items: stretch;
+    margin-bottom: 16px;
+  }
+  .fraud-indicators-wrap {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  .fraud-kicker {
+    display: inline-block;
+    color: var(--orange);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-size: 10px;
+    font-weight: 700;
+  }
+  .fraud-score-card {
+    border-radius: 16px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 8px;
+    min-height: 100%;
+    border: 1px solid var(--border);
+    text-align: left;
+  }
+  .fraud-score-card .small-dim { color: inherit; opacity: 0.72; }
+  .fraud-score-card strong { font-size: 42px; line-height: 1; }
+  .fraud-score-card.high {
+    background: linear-gradient(135deg, #fff4e7 0%, #ffe8cc 100%);
+    color: #b45309;
+    border-color: #f2dcc0;
+  }
+  .fraud-score-card.critical {
+    background: linear-gradient(135deg, #fff0f0 0%, #ffe0e0 100%);
+    color: #a61b1b;
+    border-color: #f4c9c9;
+  }
+  .fraud-score-card.medium {
+    background: linear-gradient(135deg, #eff9fb 0%, #dff2f6 100%);
+    color: #1f6d8c;
+    border-color: #cfe4ea;
+  }
+  .fraud-score-card.low {
+    background: linear-gradient(135deg, #eef2f7 0%, #e3e9f1 100%);
+    color: var(--navy);
+    border-color: #d5dce8;
+  }
+  .fraud-level { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; }
+  .fraud-score-caption {
+    font-size: 12px;
+    font-weight: 600;
+    opacity: 0.8;
+  }
+  .fraud-indicators,
+  .fraud-actions {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+  }
+  .fraud-indicators { margin-bottom: 12px; }
+  .fraud-indicator,
+  .fraud-action-card {
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    background: #fff;
+    padding: 14px;
+    width: 100%;
+    text-align: left;
+  }
+  .fraud-indicator.critical { border-color: #f4c9c9; background: #fff7f7; }
+  .fraud-indicator.high { border-color: #f2dcc0; background: #fff9f2; }
+  .fraud-indicator.medium { border-color: #cfe4ea; background: #f6fbfd; }
+  .indicator-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px;
+  }
+  .indicator-top strong { color: var(--navy); font-size: 18px; }
+  .fraud-indicator p,
+  .fraud-action-card p {
+    margin: 10px 0 0;
+    color: var(--text-dim);
+    line-height: 1.45;
+  }
+  .fraud-action-card span {
+    display: block;
+    margin-top: 6px;
+    color: var(--orange);
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
   /* Header bar */
   .recon-head {
     display: flex;
@@ -535,9 +913,18 @@
     color: #000;
     font-weight: 700;
   }
-  .grid-heads .grid-col { text-align: center; }
+  .grid-heads .grid-spacer { width: 50px; }
+  .grid-heads .grid-col { padding: 0 12px; }
   .grid-heads .grid-col.stmt { text-align: center; }
-  .grid-heads .grid-col.filter { color: var(--orange); background: #fff6ef; padding: 4px 0; border-radius: 4px; }
+  .grid-heads .grid-col.filter {
+    text-align: center;
+    color: var(--orange);
+    background: #fff6ef;
+    padding: 4px 0;
+    border-radius: 4px;
+    align-self: center;
+  }
+  .grid-heads .grid-col.docs { text-align: center; justify-self: stretch; }
 
   .grid-row {
     display: grid;
@@ -546,6 +933,11 @@
     padding: 12px 0;
     border-bottom: 1px solid var(--border);
     gap: 0;
+    scroll-margin-top: 140px;
+  }
+  .grid-row.row-highlight {
+    background: linear-gradient(90deg, rgba(240, 96, 96, 0.08) 0%, rgba(240, 96, 96, 0.02) 100%);
+    box-shadow: inset 3px 0 0 #f06060;
   }
   .sel-cell { text-align: center; }
   .sel-cell input { margin: 0; }
@@ -553,6 +945,13 @@
   .stmt-cell {
     display: flex; align-items: center; gap: 10px;
     padding: 4px 12px;
+  }
+  .stmt-reference {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    flex: 1;
   }
   .line-no { color: #000; font-size: 13px; width: 24px; font-weight: 400; }
   .type-pill {
@@ -567,10 +966,15 @@
   .stmt-cell .type-pill,
   .docs-cell .type-pill { background: var(--navy); }
   .grid-row:nth-child(4) .type-pill { background: var(--navy); }
-  .stmt-num { color: #000; font-weight: 600; font-size: 13px; flex: 1; }
+  .stmt-num { color: #000; font-weight: 600; font-size: 13px; min-width: 0; }
   .stmt-amount { color: #000; font-size: 13px; font-weight: 400; margin-left: auto; }
 
   .filter-cell { display: flex; justify-content: center; padding: 0 6px; }
+  .filter-cell {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
 
   .status-pill-sm {
     display: inline-flex; align-items: center; gap: 6px;
@@ -594,6 +998,159 @@
   .status-pill-sm.not-matched .dot { background: #e74c3c; }
   .status-pill-sm.query { color: #000; border-color: var(--amber); background: #fff; }
   .status-pill-sm.query .dot { background: var(--amber); }
+  .severity-pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 5px 10px;
+  }
+  .severity-pill.critical { background: #fbe4e4; color: #a61b1b; }
+  .severity-pill.high { background: #fff0db; color: #b45309; }
+  .severity-pill.medium { background: #e1f4f7; color: #1f6d8c; }
+  .clickable { cursor: pointer; }
+  .row-fraud-inline {
+    border-radius: 999px;
+    padding: 5px 10px;
+    text-align: center;
+    border: 1px solid var(--border);
+    background: #fff;
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 1;
+    white-space: nowrap;
+    flex: none;
+  }
+  .row-fraud-inline.critical { border-color: #f4c9c9; background: #fff6f6; color: #a61b1b; }
+  .row-fraud-inline.high { border-color: #f2dcc0; background: #fff8f1; color: #b45309; }
+  .row-fraud-inline.medium { border-color: #cfe4ea; background: #f5fbfc; color: #1f6d8c; }
+  .risk-modal-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    background: rgba(15, 23, 42, 0.42);
+    backdrop-filter: blur(4px);
+  }
+  .risk-modal {
+    width: min(820px, 100%);
+    max-height: 88vh;
+    overflow: auto;
+    border-radius: 22px;
+    background: #fff;
+    box-shadow: 0 28px 70px rgba(15, 23, 42, 0.28);
+    padding: 22px;
+  }
+  .risk-modal-head,
+  .risk-modal-meta {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .risk-modal-head { margin-bottom: 16px; }
+  .risk-modal-head h2 {
+    margin: 6px 0 0;
+    color: var(--navy);
+    font-size: 24px;
+  }
+  .risk-score-chip,
+  .impact-chip {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    background: var(--panel-alt);
+    color: var(--navy);
+    padding: 5px 10px;
+    font-size: 11px;
+    font-weight: 700;
+  }
+  .risk-driver-list {
+    display: grid;
+    gap: 12px;
+  }
+  .risk-detail-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+  .risk-driver-card {
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    background: #fff;
+    padding: 14px;
+  }
+  .fact-value {
+    margin: 8px 0 0;
+    color: var(--navy);
+    font-weight: 600;
+    line-height: 1.45;
+  }
+  .risk-driver-card p {
+    margin: 10px 0 0;
+    color: var(--text-dim);
+    line-height: 1.45;
+  }
+  .methodology-helper {
+    margin-bottom: 12px;
+    background: var(--panel-alt);
+  }
+  .methodology-collapse {
+    margin-bottom: 12px;
+  }
+  .methodology-collapse summary {
+    cursor: pointer;
+    color: var(--navy);
+    font-size: 13px;
+    font-weight: 700;
+    list-style: none;
+    margin-bottom: 10px;
+  }
+  .methodology-collapse summary::-webkit-details-marker {
+    display: none;
+  }
+  .next-action-card {
+    margin-bottom: 12px;
+    background: linear-gradient(180deg, #fff8f1 0%, #fff 100%);
+    border-color: #f2dcc0;
+  }
+  .modal-action-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 14px;
+  }
+  .modal-action-btn {
+    border: 1px solid var(--navy);
+    border-radius: 999px;
+    background: var(--navy);
+    color: #fff;
+    padding: 9px 14px;
+    font-size: 12px;
+    font-weight: 700;
+  }
+  .modal-action-btn.secondary {
+    background: #fff;
+    color: var(--navy);
+    border-color: var(--border);
+  }
+  .close-btn {
+    width: 34px;
+    height: 34px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: #fff;
+    color: var(--navy);
+    font-size: 22px;
+    line-height: 1;
+  }
 
   .docs-cell {
     display: grid;
@@ -624,5 +1181,33 @@
     font-size: 12px; font-weight: 600;
     padding: 14px 16px; text-align: center;
     border-radius: 4px; margin: 0 8px;
+  }
+  .docs-cell.warn-cell {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    white-space: nowrap;
+  }
+
+  @media (max-width: 1180px) {
+    .fraud-banner-head,
+    .fraud-indicators,
+    .fraud-actions,
+    .body-grid,
+    .risk-detail-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+  @media (max-width: 760px) {
+    .risk-modal-head,
+    .risk-modal-meta {
+      flex-wrap: wrap;
+    }
+    .risk-modal-backdrop {
+      padding: 14px;
+    }
+    .risk-modal {
+      padding: 16px;
+    }
   }
 </style>
