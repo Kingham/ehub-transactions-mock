@@ -1,4 +1,5 @@
 <script>
+  import { browser } from '$app/environment';
   import {
     communityCashflowForecast,
     communityInsights,
@@ -30,6 +31,10 @@
   let responseTarget = '4 hours';
   let closureTarget = '2 days';
   let senderMandateBannerDismissed = false;
+  let senderAssistantCustomer = 'Apex Retail UK';
+  let expectedCashDetailOpen = false;
+  let expectedCashSelection = null;
+  let expectedCashView = 'timeline';
 
   const personas = [
     { id: 'sender', label: 'Sender' },
@@ -666,6 +671,220 @@
     }
   };
 
+  const senderInvoiceActivity = {
+    '7d': {
+      submitted: { value: '28', note: 'Invoices submitted into Community customers this week' },
+      submittedValue: { value: '£118.4k', note: 'Total value of recently sent invoices' },
+      awaitingPayment: { value: '14', note: 'Invoices still awaiting approval or payment' },
+      rows: [
+        { reference: 'INV-24102', customer: 'Apex Retail UK', submittedAt: '16 May', amount: '£8,420', status: 'Approved for payment', note: 'Expected in the week of 20 May', tone: 'good' },
+        { reference: 'INV-24108', customer: 'Metro Builders Group', submittedAt: '17 May', amount: '£5,960', status: 'Matching in progress', note: 'Three-way match still in progress', tone: 'medium' },
+        { reference: 'INV-24111', customer: 'Greenline Wholesale', submittedAt: '18 May', amount: '£3,740', status: 'Query raised', note: 'Quantity variance under review', tone: 'high' },
+        { reference: 'INV-24114', customer: 'Riverside Foods', submittedAt: '19 May', amount: '£6,180', status: 'Sent', note: 'Awaiting first processing update', tone: 'medium' }
+      ]
+    },
+    '30d': {
+      submitted: { value: '124', note: 'Invoices submitted across Community customers' },
+      submittedValue: { value: '£512.8k', note: 'Total value sent into the selected period' },
+      awaitingPayment: { value: '46', note: 'Invoices still awaiting approval, payment, or clarification' },
+      rows: [
+        { reference: 'INV-24084', customer: 'Apex Retail UK', submittedAt: '12 May', amount: '£12,640', status: 'Approved for payment', note: 'Expected settlement in the week of 27 May', tone: 'good' },
+        { reference: 'INV-24091', customer: 'Greenline Wholesale', submittedAt: '13 May', amount: '£7,180', status: 'Scheduled for payment', note: 'Remittance expected before payment release', tone: 'good' },
+        { reference: 'INV-24096', customer: 'Metro Builders Group', submittedAt: '15 May', amount: '£4,920', status: 'Matching in progress', note: 'Awaiting GRN confirmation', tone: 'medium' },
+        { reference: 'INV-24099', customer: 'Northgate Services', submittedAt: '16 May', amount: '£9,560', status: 'Query raised', note: 'Pricing difference flagged by AP team', tone: 'high' },
+        { reference: 'INV-24101', customer: 'South Coast Distribution', submittedAt: '17 May', amount: '£3,480', status: 'Sent', note: 'No exception currently shown', tone: 'medium' }
+      ]
+    },
+    '90d': {
+      submitted: { value: '358', note: 'Invoices submitted across Community customers' },
+      submittedValue: { value: '£1.46m', note: 'Total invoice value sent into the selected period' },
+      awaitingPayment: { value: '118', note: 'Invoices still awaiting approval, payment, or clarification' },
+      rows: [
+        { reference: 'INV-23984', customer: 'Apex Retail UK', submittedAt: '08 Apr', amount: '£16,280', status: 'Approved for payment', note: 'Settlement timing available from remittance data', tone: 'good' },
+        { reference: 'INV-24007', customer: 'Metro Builders Group', submittedAt: '18 Apr', amount: '£6,940', status: 'Matching in progress', note: 'Still waiting on delivery confirmation', tone: 'medium' },
+        { reference: 'INV-24031', customer: 'Vertex Industrial', submittedAt: '29 Apr', amount: '£4,180', status: 'Query raised', note: 'Beneficiary detail confirmation requested', tone: 'high' },
+        { reference: 'INV-24062', customer: 'Riverside Foods', submittedAt: '07 May', amount: '£8,760', status: 'Scheduled for payment', note: 'Expected in the next remittance batch', tone: 'good' },
+        { reference: 'INV-24099', customer: 'Northgate Services', submittedAt: '16 May', amount: '£9,560', status: 'Query raised', note: 'Pricing difference still under review', tone: 'high' }
+      ]
+    }
+  };
+
+  const senderCustomerBreakdown = {
+    '7d': [
+      { customer: 'Apex Retail UK', invoices: '9', value: '£34.6k', queries: '3', expectedCash: '£12.2k', note: 'Largest current expected payment position' },
+      { customer: 'Metro Builders Group', invoices: '6', value: '£18.4k', queries: '2', expectedCash: '£9.5k', note: 'Most activity still in matching' },
+      { customer: 'Greenline Wholesale', invoices: '5', value: '£14.9k', queries: '2', expectedCash: '£6.0k', note: 'Highest query rate this week' }
+    ],
+    '30d': [
+      { customer: 'Apex Retail UK', invoices: '38', value: '£142.6k', queries: '9', expectedCash: '£26.4k', note: 'Your biggest Community customer in the selected period' },
+      { customer: 'Greenline Wholesale', invoices: '26', value: '£94.1k', queries: '11', expectedCash: '£18.5k', note: 'Highest query volume relative to invoice count' },
+      { customer: 'Metro Builders Group', invoices: '24', value: '£82.8k', queries: '7', expectedCash: '£22.7k', note: 'Strong near-term expected cash position' },
+      { customer: 'Northgate Services', invoices: '18', value: '£66.2k', queries: '6', expectedCash: '£10.8k', note: 'Most recent manual query raised' }
+    ],
+    '90d': [
+      { customer: 'Apex Retail UK', invoices: '96', value: '£381.4k', queries: '24', expectedCash: '£54.2k', note: 'Largest long-term payment relationship in view' },
+      { customer: 'Greenline Wholesale', invoices: '72', value: '£248.9k', queries: '28', expectedCash: '£39.1k', note: 'Most query-heavy account relative to invoice volume' },
+      { customer: 'Metro Builders Group', invoices: '63', value: '£221.8k', queries: '19', expectedCash: '£47.3k', note: 'Most stable expected cash cadence' },
+      { customer: 'Northgate Services', invoices: '44', value: '£156.7k', queries: '14', expectedCash: '£24.8k', note: 'Largest unresolved invoice value today' }
+    ]
+  };
+
+  const senderRemittanceOpportunity = {
+    '7d': {
+      available: { value: '9', note: 'Remittances available for invoices in this period' },
+      coveredValue: { value: '£22.4k', note: 'Payment value already supported by remittance detail' },
+      erpReady: { value: '6', note: 'Could be fed directly into your ERP automatically' },
+      benefits: [
+        'Receive remittance detail directly into your ERP instead of downloading and keying it manually.',
+        'Improve cash application by matching remittance information earlier in the payment cycle.',
+        'Use the same remittance data to strengthen your expected cash visibility.'
+      ]
+    },
+    '30d': {
+      available: { value: '43', note: 'Remittances available for invoices in this period' },
+      coveredValue: { value: '£118.9k', note: 'Payment value already supported by remittance detail' },
+      erpReady: { value: '31', note: 'Could be fed directly into your ERP automatically' },
+      benefits: [
+        'Send remittance detail straight into your ERP to reduce manual cash allocation effort.',
+        'Give finance teams earlier confirmation of what has been paid and how it should be matched.',
+        'Turn remittance visibility on this screen into an operational feed that supports reconciliation.'
+      ]
+    },
+    '90d': {
+      available: { value: '134', note: 'Remittances available for invoices in this period' },
+      coveredValue: { value: '£346.7k', note: 'Payment value already supported by remittance detail' },
+      erpReady: { value: '96', note: 'Could be fed directly into your ERP automatically' },
+      benefits: [
+        'Automate a larger share of remittance handling across multiple customers using the same ERP feed.',
+        'Reduce manual reconciliation effort across high-volume paying customers.',
+        'Create a clearer audit trail from remittance receipt through to cash posting.'
+      ]
+    }
+  };
+
+  const senderExpectedCashBreakdown = {
+    '7d': {
+      title: 'Expected cash breakdown',
+      summary: 'Drill from month into week and day level receipt timing.',
+      months: [
+        {
+          label: 'May 2026',
+          total: 'GBP 27,600.00',
+          weeks: [
+            {
+              label: 'Week of 04 May',
+              total: 'GBP 27,600.00',
+              days: [
+                { label: '06 May', total: 'GBP 12,180.00', detail: 'Apex Retail UK, Greenline Wholesale, and Northgate Services' },
+                { label: '07 May', total: 'GBP 9,460.00', detail: 'Metro Builders Group, Riverside Foods, and Apex Retail UK' },
+                { label: '08 May', total: 'GBP 5,960.00', detail: 'Greenline Wholesale, Central Trade Supply, and Metro Builders Group' }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    '30d': {
+      title: 'Expected cash breakdown',
+      summary: 'Drill from month into week and day level receipt timing.',
+      months: [
+        {
+          label: 'May 2026',
+          total: 'GBP 84,700.00',
+          weeks: [
+            {
+              label: 'Week of 04 May',
+              total: 'GBP 27,600.00',
+              days: [
+                { label: '06 May', total: 'GBP 12,180.00', detail: 'Apex Retail UK, Greenline Wholesale, and Northgate Services' },
+                { label: '07 May', total: 'GBP 9,460.00', detail: 'Metro Builders Group, Riverside Foods, and Apex Retail UK' },
+                { label: '08 May', total: 'GBP 5,960.00', detail: 'Greenline Wholesale, Central Trade Supply, and Metro Builders Group' }
+              ]
+            },
+            {
+              label: 'Week of 11 May',
+              total: 'GBP 24,800.00',
+              days: [
+                { label: '12 May', total: 'GBP 8,900.00', detail: 'Apex Retail UK and South Coast Distribution' },
+                { label: '14 May', total: 'GBP 7,740.00', detail: 'Metro Builders Group and Vertex Industrial' },
+                { label: '16 May', total: 'GBP 8,160.00', detail: 'Greenline Wholesale and Riverside Foods' }
+              ]
+            },
+            {
+              label: 'Week of 18 May',
+              total: 'GBP 18,900.00',
+              days: [
+                { label: '19 May', total: 'GBP 6,250.00', detail: 'Northgate Services and Blue Peak Supply' },
+                { label: '21 May', total: 'GBP 5,480.00', detail: 'Apex Retail UK and Metro Builders Group' },
+                { label: '23 May', total: 'GBP 7,170.00', detail: 'Central Trade Supply and Riverside Foods' }
+              ]
+            },
+            {
+              label: 'Week of 25 May',
+              total: 'GBP 13,400.00',
+              days: [
+                { label: '27 May', total: 'GBP 4,960.00', detail: 'Greenline Wholesale and Vertex Industrial' },
+                { label: '28 May', total: 'GBP 3,880.00', detail: 'South Coast Distribution' },
+                { label: '30 May', total: 'GBP 4,560.00', detail: 'Apex Retail UK and Northgate Services' }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    '90d': {
+      title: 'Expected cash breakdown',
+      summary: 'Drill from month into week and day level receipt timing.',
+      months: [
+        {
+          label: 'May 2026',
+          total: 'GBP 84,700.00',
+          weeks: [
+            {
+              label: 'Week of 04 May',
+              total: 'GBP 27,600.00',
+              days: [
+                { label: '06 May', total: 'GBP 12,180.00', detail: 'Apex Retail UK, Greenline Wholesale, and Northgate Services' },
+                { label: '07 May', total: 'GBP 9,460.00', detail: 'Metro Builders Group, Riverside Foods, and Apex Retail UK' },
+                { label: '08 May', total: 'GBP 5,960.00', detail: 'Greenline Wholesale, Central Trade Supply, and Metro Builders Group' }
+              ]
+            }
+          ]
+        },
+        {
+          label: 'June 2026',
+          total: 'GBP 79,600.00',
+          weeks: [
+            {
+              label: 'Week of 01 June',
+              total: 'GBP 21,400.00',
+              days: [
+                { label: '02 June', total: 'GBP 7,240.00', detail: 'Northgate Services and Blue Peak Supply' },
+                { label: '04 June', total: 'GBP 6,980.00', detail: 'Apex Retail UK and Riverside Foods' },
+                { label: '05 June', total: 'GBP 7,180.00', detail: 'Vertex Industrial and Greenline Wholesale' }
+              ]
+            }
+          ]
+        },
+        {
+          label: 'July 2026',
+          total: 'GBP 77,000.00',
+          weeks: [
+            {
+              label: 'Week of 06 July',
+              total: 'GBP 20,600.00',
+              days: [
+                { label: '07 July', total: 'GBP 6,840.00', detail: 'Apex Retail UK and Central Trade Supply' },
+                { label: '09 July', total: 'GBP 7,120.00', detail: 'Metro Builders Group and Riverside Foods' },
+                { label: '10 July', total: 'GBP 6,640.00', detail: 'Greenline Wholesale and Northgate Services' }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  };
+
   const receiverSenderMix = {
     '7d': [
       {
@@ -1086,6 +1305,55 @@
     return Number(String(value).replace(/[^0-9.]/g, '')) || 0;
   }
 
+  function formatCurrency(value) {
+    return `\u00A3${value.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  }
+
+  function parseExpectedCashNames(detail) {
+    return String(detail)
+      .replace(/\sand\s/g, ', ')
+      .split(',')
+      .map((item) => item.trim())
+      .filter(Boolean);
+  }
+
+  function buildExpectedCashCustomerBreakdown(day) {
+    const total = amountValue(day.total);
+    const names = parseExpectedCashNames(day.detail);
+    if (!names.length) return [];
+
+    const baseAmount = Math.floor((total / names.length) * 100) / 100;
+    let running = 0;
+
+    return names.map((name, index) => {
+      const amount = index === names.length - 1 ? Number((total - running).toFixed(2)) : baseAmount;
+      running = Number((running + amount).toFixed(2));
+
+      return {
+        customer: name,
+        amount,
+        date: day.label,
+        reference: `EC-${day.label.replace(/\s+/g, '').toUpperCase()}-${index + 1}`
+      };
+    });
+  }
+
+  function getExpectedCashDays() {
+    if (!expectedCashSelection || expectedCashSelection.level === 'month') {
+      return currentSenderExpectedCash.months.flatMap((month) => month.weeks.flatMap((week) => week.days));
+    }
+
+    if (expectedCashSelection.level === 'week') {
+      return expectedCashSelection.item.weeks.flatMap((week) => week.days);
+    }
+
+    if (expectedCashSelection.level === 'day') {
+      return expectedCashSelection.item.days;
+    }
+
+    return expectedCashSelection?.item ? [expectedCashSelection.item] : [];
+  }
+
   function pressureBandClass(label) {
     if (label === 'High') return 'high-risk';
     if (label === 'Watchlist') return 'watchlist';
@@ -1323,6 +1591,34 @@
     activeTab = 'transactions';
   }
 
+  function openEvaAssistant(mode = 'question', prompt = '') {
+    if (!browser) return;
+
+      window.dispatchEvent(
+        new CustomEvent('open-eva', {
+          detail: {
+            customer: senderAssistantCustomer,
+            mode,
+            prompt
+          }
+        })
+      );
+    }
+
+  function openSenderInvoiceRecord(record) {
+    const match =
+      communityTransactions.find((item) => item.reference === record.reference) ||
+      communityTransactions.find((item) => item.party === record.customer) ||
+      communityTransactions.find((item) => item.channel === 'Supplier') ||
+      communityTransactions[0];
+
+    workspaceItemsOverride = null;
+    workspaceOperationalContext = null;
+    workspaceSummary = `${record.reference} for ${record.customer}`;
+    selectedTransactionId = match.id;
+    activeTab = 'transactions';
+  }
+
   function openInsightTransactions(insightKey, label, count, summary) {
     const cases = buildInsightCases(selectedPeriod, insightKey, label, count);
     workspaceItemsOverride = cases;
@@ -1473,6 +1769,54 @@
     }
   }
 
+  function openExpectedCashDetail(level = 'month', item = null, trail = []) {
+    expectedCashSelection = { level, item, trail };
+    expectedCashView = 'timeline';
+    expectedCashDetailOpen = true;
+  }
+
+  function closeExpectedCashDetail() {
+    expectedCashDetailOpen = false;
+    expectedCashSelection = null;
+    expectedCashView = 'timeline';
+  }
+
+  function selectExpectedCashMonth(month) {
+    openExpectedCashDetail('week', month, [month.label]);
+  }
+
+  function selectExpectedCashWeek(week) {
+    openExpectedCashDetail('day', week, [...(expectedCashSelection?.trail || []), week.label]);
+  }
+
+  function selectExpectedCashDay(day) {
+    openExpectedCashDetail('detail', day, [...(expectedCashSelection?.trail || []), day.label]);
+  }
+
+  function backExpectedCashLevel() {
+    if (!expectedCashSelection || expectedCashSelection.level === 'month') {
+      closeExpectedCashDetail();
+      return;
+    }
+
+    if (expectedCashSelection.level === 'detail') {
+      const month = currentSenderExpectedCash.months.find((item) => item.label === expectedCashSelection.trail[0]);
+      const week = month?.weeks.find((item) => item.label === expectedCashSelection.trail[1]);
+      if (week) {
+        openExpectedCashDetail('day', week, expectedCashSelection.trail.slice(0, 2));
+        return;
+      }
+    }
+
+    if (expectedCashSelection.level === 'day') {
+      const month = currentSenderExpectedCash.months.find((item) => item.label === expectedCashSelection.trail[0]);
+      openExpectedCashDetail('week', month, expectedCashSelection.trail.slice(0, 1));
+      return;
+    }
+
+    openExpectedCashDetail('month', null, []);
+  }
+
   function openPressureDriver(driverKey) {
     workspaceItemsOverride = null;
     workspaceOperationalContext = null;
@@ -1500,6 +1844,97 @@
       }
     };
 
+    const senderInvoiceActivity = {
+      '7d': {
+        submitted: { value: '28', note: 'Invoices submitted into Community customers this week' },
+        submittedValue: { value: '£118.4k', note: 'Total value of recently sent invoices' },
+        awaitingPayment: { value: '14', note: 'Invoices still awaiting approval or payment' },
+        rows: [
+          { reference: 'INV-24102', customer: 'Apex Retail UK', submittedAt: '16 May', amount: '£8,420', status: 'Approved for payment', note: 'Expected in the week of 20 May', tone: 'good' },
+          { reference: 'INV-24108', customer: 'Metro Builders Group', submittedAt: '17 May', amount: '£5,960', status: 'Matching in progress', note: 'Three-way match still in progress', tone: 'medium' },
+          { reference: 'INV-24111', customer: 'Greenline Wholesale', submittedAt: '18 May', amount: '£3,740', status: 'Query raised', note: 'Quantity variance under review', tone: 'high' },
+          { reference: 'INV-24114', customer: 'Riverside Foods', submittedAt: '19 May', amount: '£6,180', status: 'Sent', note: 'Awaiting first processing update', tone: 'medium' }
+        ]
+      },
+      '30d': {
+        submitted: { value: '124', note: 'Invoices submitted across Community customers' },
+        submittedValue: { value: '£512.8k', note: 'Total value sent into the selected period' },
+        awaitingPayment: { value: '46', note: 'Invoices still awaiting approval, payment, or clarification' },
+        rows: [
+          { reference: 'INV-24084', customer: 'Apex Retail UK', submittedAt: '12 May', amount: '£12,640', status: 'Approved for payment', note: 'Expected settlement in the week of 27 May', tone: 'good' },
+          { reference: 'INV-24091', customer: 'Greenline Wholesale', submittedAt: '13 May', amount: '£7,180', status: 'Scheduled for payment', note: 'Remittance expected before payment release', tone: 'good' },
+          { reference: 'INV-24096', customer: 'Metro Builders Group', submittedAt: '15 May', amount: '£4,920', status: 'Matching in progress', note: 'Awaiting GRN confirmation', tone: 'medium' },
+          { reference: 'INV-24099', customer: 'Northgate Services', submittedAt: '16 May', amount: '£9,560', status: 'Query raised', note: 'Pricing difference flagged by AP team', tone: 'high' },
+          { reference: 'INV-24101', customer: 'South Coast Distribution', submittedAt: '17 May', amount: '£3,480', status: 'Sent', note: 'No exception currently shown', tone: 'medium' }
+        ]
+      },
+      '90d': {
+        submitted: { value: '358', note: 'Invoices submitted across Community customers' },
+        submittedValue: { value: '£1.46m', note: 'Total invoice value sent into the selected period' },
+        awaitingPayment: { value: '118', note: 'Invoices still awaiting approval, payment, or clarification' },
+        rows: [
+          { reference: 'INV-23984', customer: 'Apex Retail UK', submittedAt: '08 Apr', amount: '£16,280', status: 'Approved for payment', note: 'Settlement timing available from remittance data', tone: 'good' },
+          { reference: 'INV-24007', customer: 'Metro Builders Group', submittedAt: '18 Apr', amount: '£6,940', status: 'Matching in progress', note: 'Still waiting on delivery confirmation', tone: 'medium' },
+          { reference: 'INV-24031', customer: 'Vertex Industrial', submittedAt: '29 Apr', amount: '£4,180', status: 'Query raised', note: 'Beneficiary detail confirmation requested', tone: 'high' },
+          { reference: 'INV-24062', customer: 'Riverside Foods', submittedAt: '07 May', amount: '£8,760', status: 'Scheduled for payment', note: 'Expected in the next remittance batch', tone: 'good' },
+          { reference: 'INV-24099', customer: 'Northgate Services', submittedAt: '16 May', amount: '£9,560', status: 'Query raised', note: 'Pricing difference still under review', tone: 'high' }
+        ]
+      }
+    };
+
+    const senderCustomerBreakdown = {
+      '7d': [
+        { customer: 'Apex Retail UK', invoices: '9', value: '£34.6k', queries: '3', expectedCash: '£12.2k', note: 'Largest current expected payment position' },
+        { customer: 'Metro Builders Group', invoices: '6', value: '£18.4k', queries: '2', expectedCash: '£9.5k', note: 'Most activity still in matching' },
+        { customer: 'Greenline Wholesale', invoices: '5', value: '£14.9k', queries: '2', expectedCash: '£6.0k', note: 'Highest query rate this week' }
+      ],
+      '30d': [
+        { customer: 'Apex Retail UK', invoices: '38', value: '£142.6k', queries: '9', expectedCash: '£26.4k', note: 'Your biggest Community customer in the selected period' },
+        { customer: 'Greenline Wholesale', invoices: '26', value: '£94.1k', queries: '11', expectedCash: '£18.5k', note: 'Highest query volume relative to invoice count' },
+        { customer: 'Metro Builders Group', invoices: '24', value: '£82.8k', queries: '7', expectedCash: '£22.7k', note: 'Strong near-term expected cash position' },
+        { customer: 'Northgate Services', invoices: '18', value: '£66.2k', queries: '6', expectedCash: '£10.8k', note: 'Most recent manual query raised' }
+      ],
+      '90d': [
+        { customer: 'Apex Retail UK', invoices: '96', value: '£381.4k', queries: '24', expectedCash: '£54.2k', note: 'Largest long-term payment relationship in view' },
+        { customer: 'Greenline Wholesale', invoices: '72', value: '£248.9k', queries: '28', expectedCash: '£39.1k', note: 'Most query-heavy account relative to invoice volume' },
+        { customer: 'Metro Builders Group', invoices: '63', value: '£221.8k', queries: '19', expectedCash: '£47.3k', note: 'Most stable expected cash cadence' },
+        { customer: 'Northgate Services', invoices: '44', value: '£156.7k', queries: '14', expectedCash: '£24.8k', note: 'Largest unresolved invoice value today' }
+      ]
+    };
+
+    const senderRemittanceOpportunity = {
+      '7d': {
+        available: { value: '9', note: 'Remittances available for invoices in this period' },
+        coveredValue: { value: '£22.4k', note: 'Payment value already supported by remittance detail' },
+        erpReady: { value: '6', note: 'Could be fed directly into your ERP automatically' },
+        benefits: [
+          'Receive remittance detail directly into your ERP instead of downloading and keying it manually.',
+          'Improve cash application by matching remittance information earlier in the payment cycle.',
+          'Use the same remittance data to strengthen your expected cash visibility.'
+        ]
+      },
+      '30d': {
+        available: { value: '43', note: 'Remittances available for invoices in this period' },
+        coveredValue: { value: '£118.9k', note: 'Payment value already supported by remittance detail' },
+        erpReady: { value: '31', note: 'Could be fed directly into your ERP automatically' },
+        benefits: [
+          'Send remittance detail straight into your ERP to reduce manual cash allocation effort.',
+          'Give finance teams earlier confirmation of what has been paid and how it should be matched.',
+          'Turn remittance visibility on this screen into an operational feed that supports reconciliation.'
+        ]
+      },
+      '90d': {
+        available: { value: '134', note: 'Remittances available for invoices in this period' },
+        coveredValue: { value: '£346.7k', note: 'Payment value already supported by remittance detail' },
+        erpReady: { value: '96', note: 'Could be fed directly into your ERP automatically' },
+        benefits: [
+          'Automate a larger share of remittance handling across multiple customers using the same ERP feed.',
+          'Reduce manual reconciliation effort across high-volume paying customers.',
+          'Create a clearer audit trail from remittance receipt through to cash posting.'
+        ]
+      }
+    };
+
     const target = targets[driverKey];
     if (!target) return;
 
@@ -1524,7 +1959,38 @@
   $: currentReceiverInsights = receiverInsightData[selectedPeriod];
   $: currentSenderMetrics = senderPeriodMetrics[selectedPeriod];
   $: currentSenderInboxAssistant = senderInboxAssistant[selectedPeriod];
+  $: currentSenderInvoiceActivity = senderInvoiceActivity[selectedPeriod];
+  $: currentSenderCustomerBreakdown = senderCustomerBreakdown[selectedPeriod];
+  $: currentSenderRemittanceOpportunity = senderRemittanceOpportunity[selectedPeriod];
   $: currentSenderInsights = senderInsightData[selectedPeriod];
+  $: currentSenderExpectedCash = senderExpectedCashBreakdown[selectedPeriod];
+  $: if (!currentSenderCustomerBreakdown.some((row) => row.customer === senderAssistantCustomer)) {
+    senderAssistantCustomer = currentSenderCustomerBreakdown[0]?.customer || '';
+  }
+  $: expectedCashDays = getExpectedCashDays();
+  $: expectedCashCustomerRows = Object.values(
+    expectedCashDays
+      .flatMap((day) => buildExpectedCashCustomerBreakdown(day))
+      .reduce((acc, row) => {
+        if (!acc[row.customer]) {
+          acc[row.customer] = { customer: row.customer, amount: 0, days: new Set() };
+        }
+        acc[row.customer].amount += row.amount;
+        acc[row.customer].days.add(row.date);
+        return acc;
+      }, {})
+  )
+    .map((row) => ({ ...row, amount: Number(row.amount.toFixed(2)), dayCount: row.days.size }))
+    .sort((a, b) => b.amount - a.amount);
+  $: expectedCashTransactions = expectedCashDays
+    .flatMap((day) => buildExpectedCashCustomerBreakdown(day))
+    .map((row, index) => ({
+      id: `${row.reference}-${index + 1}`,
+      reference: row.reference,
+      customer: row.customer,
+      expectedDate: row.date,
+      amount: row.amount
+    }));
   $: workspaceItems = workspaceItemsOverride || communityTransactions;
   $: statusOptions = ['All', ...new Set(workspaceItems.map((item) => item.status))];
   $: transactionTypes = ['All', ...new Set(workspaceItems.map((item) => item.type))];
@@ -1561,7 +2027,7 @@
     {#if persona === 'sender' && !senderMandateBannerDismissed}
       <aside class="sender-mandate-banner" aria-label="2029 eInvoicing mandate">
         <div class="sender-mandate-copy">
-          <span class="sender-mandate-kicker">2029 eInvoicing mandate</span>
+          <span class="sender-mandate-kicker">UK Government 2029 eInvoicing mandate</span>
           <p>
             Have you started planning how your business will be compliant with the Government’s 2029 eInvoicing
             mandate?
@@ -2039,19 +2505,64 @@
           </section>
         </section>
       {:else}
+        <article class="subpanel sender-assistant-panel">
+          <div class="section-head">
+            <div>
+              <span class="section-kicker">Ask EVA</span>
+              <h3>Ask a question, chase an invoice, or raise a query</h3>
+            </div>
+            <button type="button" class="ghost-btn solid" on:click={() => openEvaAssistant('question')}>Open EVA</button>
+          </div>
+
+          <div class="sender-assistant-layout">
+            <div>
+              <p class="assistant-copy">
+                Use EVA to ask about invoice status, payment timing, remittances, or supporting documents. EVA will
+                try to answer from the live data available across your customers. If an answer is not available, EVA
+                will summarise the conversation so you can raise a query without repeating yourself.
+              </p>
+
+              <div class="chip-list">
+                <button type="button" class="pill-chip" on:click={() => openEvaAssistant('question', 'Where is invoice INV-24084?')}>Where is invoice INV-24084?</button>
+                <button type="button" class="pill-chip" on:click={() => openEvaAssistant('question', 'When is payment expected?')}>When is payment expected?</button>
+                <button type="button" class="pill-chip" on:click={() => openEvaAssistant('question', 'Can I get the remittance?')}>Can I get the remittance?</button>
+              </div>
+            </div>
+
+            <div class="assistant-sidecard">
+              <span class="hero-label">Current query destination</span>
+              <label class="assistant-customer-select">
+                <select bind:value={senderAssistantCustomer}>
+                  {#each currentSenderCustomerBreakdown as item}
+                    <option value={item.customer}>{item.customer}</option>
+                  {/each}
+                </select>
+              </label>
+              <span class="hero-note">If EVA cannot close the journey, the summary can be raised straight to this customer.</span>
+            </div>
+          </div>
+        </article>
+
         <section class="top-summary-row sender-top">
-          <div class="sender-hero">
+          <div
+            class="sender-hero clickable-hero"
+            role="button"
+            tabindex="0"
+            aria-label="Open expected cash breakdown"
+            on:click={() => openExpectedCashDetail('month', null, [])}
+            on:keydown={(event) => (event.key === 'Enter' || event.key === ' ' ? openExpectedCashDetail('month', null, []) : null)}
+          >
             <span class="hero-label">Expected cash</span>
             <strong>{`\u00A3${String(currentSenderMetrics.expectedCash.value).replace(/[^0-9.]/g, '')}k`}</strong>
             <span class="hero-note">Expected receipts for the selected period</span>
             <p>{currentSenderMetrics.summary}</p>
           </div>
 
-          <div class="metric-grid top-metrics">
-            <article class="metric-card">
-              <span class="metric-title">Tracked transactions</span>
-              <strong class="metric-value">{currentSenderMetrics.tracked.value}</strong>
-              <span class="metric-change medium">{currentSenderMetrics.tracked.change}</span>
+          <div class="metric-grid top-metrics sender-top-metrics">
+            <article class="metric-card accent-high">
+              <span class="metric-title">Awaiting your response</span>
+              <strong class="metric-value">{currentSenderMetrics.awaitingResponse.value}</strong>
+              <span class="metric-change high">{currentSenderMetrics.awaitingResponse.change}</span>
             </article>
             <article class="metric-card">
               <span class="metric-title">Queries raised in Community</span>
@@ -2063,11 +2574,6 @@
               <strong class="metric-value">{currentSenderMetrics.remittances.value}</strong>
               <span class="metric-change good">{currentSenderMetrics.remittances.change}</span>
             </article>
-            <article class="metric-card accent-high">
-              <span class="metric-title">Awaiting your response</span>
-              <strong class="metric-value">{currentSenderMetrics.awaitingResponse.value}</strong>
-              <span class="metric-change high">{currentSenderMetrics.awaitingResponse.change}</span>
-            </article>
           </div>
         </section>
 
@@ -2076,41 +2582,44 @@
             <article class="subpanel">
               <div class="section-head">
                 <div>
-                  <span class="section-kicker">Self-service priorities</span>
-                  <h3>Key areas in view</h3>
+                  <span class="section-kicker">Invoice activity</span>
+                  <h3>Recently sent invoices across your customers</h3>
                 </div>
               </div>
 
-              <div class="focus-list">
-                {#each currentSenderMetrics.focusItems as item}
-                  <div class="focus-item">{item}</div>
-                {/each}
-              </div>
-            </article>
-
-            <article class="subpanel">
-              <div class="section-head">
-                <div>
-                  <span class="section-kicker">Live tracking</span>
-                  <h3>Tracked transactions</h3>
-                </div>
-              </div>
+              <section class="analytics-grid sender-analytics-grid">
+                <article class="metric-card">
+                  <span class="metric-title">Invoices recently sent</span>
+                  <strong class="metric-value">{currentSenderInvoiceActivity.submitted.value}</strong>
+                  <span class="metric-summary">{currentSenderInvoiceActivity.submitted.note}</span>
+                </article>
+                <article class="metric-card accent-good">
+                  <span class="metric-title">Invoice value sent</span>
+                  <strong class="metric-value">{currentSenderInvoiceActivity.submittedValue.value}</strong>
+                  <span class="metric-summary">{currentSenderInvoiceActivity.submittedValue.note}</span>
+                </article>
+                <article class="metric-card accent-high">
+                  <span class="metric-title">Still awaiting payment</span>
+                  <strong class="metric-value">{currentSenderInvoiceActivity.awaitingPayment.value}</strong>
+                  <span class="metric-summary">{currentSenderInvoiceActivity.awaitingPayment.note}</span>
+                </article>
+              </section>
 
               <div class="transaction-grid">
-                {#each communityTransactions.filter((item) => item.channel === 'Supplier').slice(0, 4) as item}
-                  <button class="transaction-card" on:click={() => selectTransaction(item.id)}>
+                {#each currentSenderInvoiceActivity.rows as item}
+                  <button class="transaction-card" on:click={() => openSenderInvoiceRecord(item)}>
                     <div class="transaction-top">
                       <div>
-                        <span class="card-type">{item.type}</span>
+                        <span class="card-type">Invoice</span>
                         <h4>{item.reference}</h4>
                       </div>
-                      <span class="status-pill {toneClass(item.statusTone)}">{item.status}</span>
+                      <span class="status-pill {toneClass(item.tone)}">{item.status}</span>
                     </div>
-                    <p>{item.party}</p>
+                    <p>{item.customer}</p>
                     <div class="transaction-meta">
                       <span>{item.amount}</span>
-                      <span>{item.nextMilestone}</span>
-                      <span>{item.nextEta}</span>
+                      <span>Submitted {item.submittedAt}</span>
+                      <span>{item.note}</span>
                     </div>
                   </button>
                 {/each}
@@ -2120,9 +2629,71 @@
             <article class="subpanel">
               <div class="section-head">
                 <div>
-                  <span class="section-kicker">Recent remittances</span>
-                  <h3>Payment visibility and receipts</h3>
+                  <span class="section-kicker">Customer coverage</span>
+                  <h3>Where your invoice activity is sitting</h3>
                 </div>
+              </div>
+
+              <div class="sender-hotspot-list">
+                {#each currentSenderCustomerBreakdown as item}
+                  <article class="sender-hotspot-card">
+                    <div class="sender-hotspot-head">
+                      <div>
+                        <strong>{item.customer}</strong>
+                        <span>{item.note}</span>
+                      </div>
+                      <span class="status-pill medium">{item.queries} queries</span>
+                    </div>
+
+                    <div class="team-stats-grid">
+                      <div class="team-stat-card">
+                        <span>Invoices</span>
+                        <strong>{item.invoices}</strong>
+                      </div>
+                      <div class="team-stat-card">
+                        <span>Value sent</span>
+                        <strong>{item.value}</strong>
+                      </div>
+                      <div class="team-stat-card">
+                        <span>Expected cash</span>
+                        <strong>{item.expectedCash}</strong>
+                      </div>
+                    </div>
+                  </article>
+                {/each}
+              </div>
+            </article>
+
+            <article class="subpanel">
+              <div class="section-head">
+                <div>
+                  <span class="section-kicker">Remittance service</span>
+                  <h3>Available now and ready to feed your ERP</h3>
+                </div>
+              </div>
+
+              <section class="analytics-grid sender-analytics-grid">
+                <article class="metric-card accent-good">
+                  <span class="metric-title">Remittances available</span>
+                  <strong class="metric-value">{currentSenderRemittanceOpportunity.available.value}</strong>
+                  <span class="metric-summary">{currentSenderRemittanceOpportunity.available.note}</span>
+                </article>
+                <article class="metric-card">
+                  <span class="metric-title">Value covered</span>
+                  <strong class="metric-value">{currentSenderRemittanceOpportunity.coveredValue.value}</strong>
+                  <span class="metric-summary">{currentSenderRemittanceOpportunity.coveredValue.note}</span>
+                </article>
+                <article class="metric-card">
+                  <span class="metric-title">ERP feed opportunity</span>
+                  <strong class="metric-value">{currentSenderRemittanceOpportunity.erpReady.value}</strong>
+                  <span class="metric-summary">{currentSenderRemittanceOpportunity.erpReady.note}</span>
+                </article>
+              </section>
+
+              <div class="focus-list">
+                {#each currentSenderRemittanceOpportunity.benefits as item}
+                  <div class="focus-item">{item}</div>
+                {/each}
               </div>
 
               <div class="remittance-list">
@@ -2221,23 +2792,18 @@
                 </div>
               </div>
 
-              <section class="analytics-grid">
-                <article class="metric-card accent-good">
-                  <span class="metric-title">Answered automatically</span>
-                  <strong class="metric-value">{currentSenderInboxAssistant.autoAnswered.value}</strong>
-                  <span class="metric-summary">{currentSenderInboxAssistant.autoAnswered.note}</span>
-                </article>
-                <article class="metric-card">
-                  <span class="metric-title">Created as tracked queries</span>
-                  <strong class="metric-value">{currentSenderInboxAssistant.converted.value}</strong>
-                  <span class="metric-summary">{currentSenderInboxAssistant.converted.note}</span>
-                </article>
-                <article class="metric-card">
-                  <span class="metric-title">Average email turns before answer</span>
-                  <strong class="metric-value">{currentSenderInboxAssistant.avgMessages.value}</strong>
-                  <span class="metric-summary">{currentSenderInboxAssistant.avgMessages.note}</span>
-                </article>
-              </section>
+                <section class="analytics-grid">
+                  <article class="metric-card accent-good">
+                    <span class="metric-title">Answered automatically</span>
+                    <strong class="metric-value">{currentSenderInboxAssistant.autoAnswered.value}</strong>
+                    <span class="metric-summary">{currentSenderInboxAssistant.autoAnswered.note}</span>
+                  </article>
+                  <article class="metric-card">
+                    <span class="metric-title">Created as tracked queries</span>
+                    <strong class="metric-value">{currentSenderInboxAssistant.converted.value}</strong>
+                    <span class="metric-summary">{currentSenderInboxAssistant.converted.note}</span>
+                  </article>
+                </section>
 
               <div class="insight-list">
                 {#each currentSenderInboxAssistant.themes as item}
@@ -2827,6 +3393,141 @@
   </div>
 {/if}
 
+{#if expectedCashDetailOpen}
+  <button class="modal-backdrop" on:click={closeExpectedCashDetail} aria-label="Close expected cash breakdown"></button>
+  <div class="modal-shell" role="dialog" aria-modal="true" aria-labelledby="expected-cash-title">
+    <div class="modal-card">
+      <div class="modal-head">
+        <div>
+            <span class="section-kicker">Expected cash</span>
+            <h3 id="expected-cash-title">
+              {expectedCashSelection?.level === 'detail'
+                ? `${expectedCashSelection.item.label} expected receipts`
+                : expectedCashSelection?.level === 'day'
+                ? 'Daily receipt view'
+                : expectedCashSelection?.level === 'week'
+                  ? 'Weekly receipt view'
+                  : currentSenderExpectedCash.title}
+            </h3>
+        </div>
+        <button class="modal-close" on:click={closeExpectedCashDetail} aria-label="Close expected cash breakdown">Close</button>
+      </div>
+
+      <div class="modal-summary">
+        <strong>
+          {expectedCashSelection?.item?.total || currentSenderMetrics.expectedCash.value}
+        </strong>
+        <span>
+          {expectedCashSelection?.trail?.length
+            ? `Viewing ${expectedCashSelection.trail.join(' • ')}`
+            : currentSenderExpectedCash.summary}
+        </span>
+      </div>
+
+      <div class="expected-cash-controls">
+        <div class="view-toggle">
+          <button class:active={expectedCashView === 'timeline'} class="toggle-btn" on:click={() => (expectedCashView = 'timeline')}>Timeline</button>
+          <button class:active={expectedCashView === 'customer'} class="toggle-btn" on:click={() => (expectedCashView = 'customer')}>By customer</button>
+          <button class:active={expectedCashView === 'transactions'} class="toggle-btn" on:click={() => (expectedCashView = 'transactions')}>See transactions</button>
+        </div>
+      </div>
+
+      <div class="detail-grid">
+        <article class="detail-card">
+          <span class="section-kicker">
+            {expectedCashView === 'customer'
+              ? 'Customer totals'
+              : expectedCashView === 'transactions'
+                ? 'Underlying transactions'
+                : expectedCashSelection?.level === 'day'
+                  ? 'Expected days'
+                  : expectedCashSelection?.level === 'week'
+                    ? 'Expected weeks'
+                    : 'Expected months'}
+          </span>
+
+          <div class="cash-drill-list">
+            {#if expectedCashView === 'customer'}
+              {#each expectedCashCustomerRows as row}
+                <div class="cash-drill-item static">
+                  <div>
+                    <strong>{row.customer}</strong>
+                    <span>{row.dayCount} expected receipt day{row.dayCount === 1 ? '' : 's'}</span>
+                  </div>
+                  <strong>{formatCurrency(row.amount)}</strong>
+                </div>
+              {/each}
+            {:else if expectedCashView === 'transactions'}
+              {#each expectedCashTransactions as row}
+                <div class="cash-drill-item static">
+                  <div>
+                    <strong>{row.reference}</strong>
+                    <span>{row.customer} • Expected {row.expectedDate}</span>
+                  </div>
+                  <strong>{formatCurrency(row.amount)}</strong>
+                </div>
+              {/each}
+            {:else if !expectedCashSelection || expectedCashSelection.level === 'month'}
+              {#each currentSenderExpectedCash.months as month}
+                <button class="cash-drill-item" on:click={() => selectExpectedCashMonth(month)}>
+                  <div>
+                    <strong>{month.label}</strong>
+                    <span>{month.weeks.length} weekly windows</span>
+                  </div>
+                  <strong>{formatCurrency(amountValue(month.total))}</strong>
+                </button>
+              {/each}
+            {:else if expectedCashSelection.level === 'week'}
+                {#each expectedCashSelection.item.weeks as week}
+                  <button class="cash-drill-item" on:click={() => selectExpectedCashWeek(week)}>
+                    <div>
+                      <strong>{week.label}</strong>
+                      <span>{week.days.length} expected receipt days</span>
+                    </div>
+                    <strong>{formatCurrency(amountValue(week.total))}</strong>
+                  </button>
+                {/each}
+              {:else if expectedCashSelection.level === 'day'}
+                {#each expectedCashSelection.item.days as day}
+                  <button class="cash-drill-item" on:click={() => selectExpectedCashDay(day)}>
+                    <div>
+                      <strong>{day.label}</strong>
+                      <span>{day.detail}</span>
+                    </div>
+                    <strong>{formatCurrency(amountValue(day.total))}</strong>
+                  </button>
+                {/each}
+              {:else}
+                <div class="cash-drill-item static">
+                  <div>
+                    <strong>{expectedCashSelection.item.label}</strong>
+                    <span>{expectedCashSelection.item.detail}</span>
+                  </div>
+                  <strong>{formatCurrency(amountValue(expectedCashSelection.item.total))}</strong>
+                </div>
+              {/if}
+            </div>
+          </article>
+
+        <article class="detail-card">
+          <span class="section-kicker">Drill path</span>
+          <div class="trend-list">
+            <span>Month view shows the headline expected receipt position.</span>
+            <span>Week view groups the month into cash arrival windows.</span>
+            <span>Day view shows the expected receipt dates and contributing customers.</span>
+          </div>
+          <div class="action-row">
+            {#if expectedCashSelection?.level && expectedCashSelection.level !== 'month'}
+              <button class="ghost-btn" on:click={backExpectedCashLevel}>Back one level</button>
+            {/if}
+            <button class="ghost-btn solid" on:click={closeExpectedCashDetail}>Close</button>
+          </div>
+        </article>
+      </div>
+    </div>
+  </div>
+{/if}
+
 <style>
   .main-card { padding: 0; overflow: hidden; }
   .page-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
@@ -2897,7 +3598,9 @@
   .period-field { min-width: 180px; }
   .top-summary-row { display: grid; grid-template-columns: 320px minmax(0, 1fr); gap: 14px; align-items: stretch; }
   .receiver-top { margin-bottom: 18px; }
-  .sender-top { margin-bottom: 18px; }
+  .sender-top { margin-bottom: 18px; grid-template-columns: 420px minmax(0, 1fr); }
+  .sender-top-metrics { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .sender-top-metrics .metric-card { padding: 16px; gap: 8px; }
 
   .value-card,
   .sender-hero,
@@ -2918,6 +3621,33 @@
   .sender-hero {
     background: linear-gradient(135deg, #0f5b68 0%, #0b7f77 55%, #134154 100%);
     box-shadow: 0 18px 40px rgba(16, 41, 79, 0.18);
+  }
+  .clickable-hero { cursor: pointer; transition: transform 160ms ease, box-shadow 160ms ease; }
+  .clickable-hero:hover,
+  .clickable-hero:focus-visible { transform: translateY(-1px); box-shadow: 0 22px 46px rgba(16, 41, 79, 0.22); }
+  .expected-cash-controls { margin-bottom: 14px; }
+  .view-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: var(--panel-alt);
+  }
+  .toggle-btn {
+    min-height: 34px;
+    padding: 0 14px;
+    border: none;
+    border-radius: 999px;
+    background: transparent;
+    color: var(--text-dim);
+    font-size: 12px;
+    font-weight: 700;
+  }
+  .toggle-btn.active {
+    background: #0b7f77;
+    color: #fff;
   }
 
   .value-card strong,
@@ -3133,6 +3863,43 @@
   .reason-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .focus-list { gap: 10px; }
   .focus-item { padding: 14px 16px; border-radius: 14px; background: linear-gradient(180deg, #f6fbfb 0%, #fff 100%); border: 1px solid var(--border); color: var(--navy); font-weight: 600; }
+  .sender-assistant-panel { margin-bottom: 18px; }
+  .sender-assistant-layout { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(260px, 0.75fr); gap: 16px; align-items: stretch; }
+  .assistant-copy { margin: 0 0 12px; color: var(--text-dim); line-height: 1.6; }
+  .pill-chip {
+    display: inline-flex;
+    align-items: center;
+    min-height: 34px;
+    padding: 0 12px;
+    border-radius: 999px;
+    background: #eef7f6;
+    border: 1px solid #cfe8e4;
+    color: var(--navy);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .assistant-customer-select select {
+    min-height: 40px;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    background: #fff;
+    color: var(--navy);
+    font-size: 18px;
+    font-weight: 700;
+    padding: 0 38px 0 12px;
+    outline: none;
+  }
+  .assistant-sidecard {
+    display: grid;
+    align-content: start;
+    gap: 8px;
+    padding: 16px;
+    border-radius: 16px;
+    background: linear-gradient(180deg, #f7fbfb 0%, #fff 100%);
+    border: 1px solid var(--border);
+  }
+  .assistant-sidecard strong { color: var(--navy); font-size: 20px; line-height: 1.2; }
   .reason-card { padding: 16px; display: grid; gap: 6px; text-align: center; }
   .reason-card strong { color: var(--navy); font-size: 30px; line-height: 1; }
   .reason-card span { color: var(--text-dim); font-size: 12px; }
@@ -3163,6 +3930,7 @@
   }
   .team-stats-grid strong { display: block; margin-top: 6px; color: var(--navy); font-size: 18px; line-height: 1; }
   .analytics-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .sender-analytics-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .heatmap-panel { margin-top: 16px; padding-top: 2px; }
   .heatmap-shell { display: grid; gap: 8px; }
   .heatmap-header, .heatmap-row { display: grid; grid-template-columns: 72px repeat(6, minmax(0, 1fr)); gap: 8px; align-items: center; }
@@ -3172,6 +3940,22 @@
   .heatmap-note { margin: 12px 0 0; color: var(--text-dim); font-size: 12px; line-height: 1.5; }
   .queue-card, .transaction-card { padding: 16px; text-align: left; width: 100%; }
   .remittance-card, .cashflow-card { padding: 16px; border-radius: 16px; background: var(--panel-alt); border: 1px solid var(--border); }
+  .cash-drill-list { display: grid; gap: 12px; }
+  .cash-drill-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    width: 100%;
+    padding: 14px 16px;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    background: var(--panel-alt);
+    text-align: left;
+  }
+  .cash-drill-item.static { background: var(--panel-alt); }
+  .cash-drill-item strong { color: var(--navy); }
+  .cash-drill-item span { display: block; margin-top: 4px; color: var(--text-dim); font-size: 12px; line-height: 1.45; }
   .chart-card { padding: 16px; border-radius: 16px; background: linear-gradient(180deg, #f7fbfb 0%, #fff 100%); border: 1px solid var(--border); margin-bottom: 14px; }
   .chart-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
   .chart-head strong { color: var(--navy); }
@@ -3271,7 +4055,7 @@
   .role-row p { margin: 6px 0 0; color: var(--text-dim); }
 
   @media (max-width: 1180px) {
-    .top-summary-row, .content-grid, .workspace-shell, .receiver-pressure-layout, .queue-grid, .reason-grid, .detail-grid, .dual-grid, .analytics-grid, .service-level-grid, .sla-group-stack, .settings-grid, .insights-grid {
+    .top-summary-row, .content-grid, .workspace-shell, .receiver-pressure-layout, .queue-grid, .reason-grid, .detail-grid, .dual-grid, .analytics-grid, .service-level-grid, .sla-group-stack, .settings-grid, .insights-grid, .sender-assistant-layout {
       grid-template-columns: 1fr;
     }
     .receiver-layout > .stack {
