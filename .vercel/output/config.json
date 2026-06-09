@@ -1,0 +1,73 @@
+{
+	"version": 3,
+	"routes": [
+		{
+			"src": ".*",
+			"continue": true,
+			"transforms": [
+				{
+					"type": "request.query",
+					"op": "delete",
+					"target": {
+						"key": "__pathname"
+					}
+				}
+			]
+		},
+		{
+			"src": "/_app/immutable/.+",
+			"headers": {
+				"cache-control": "public, immutable, max-age=31536000"
+			}
+		},
+		{
+			"handle": "filesystem"
+		},
+		{
+			"src": "/_app/immutable/.+",
+			"status": 404,
+			"continue": false
+		},
+		{
+			"src": "^/?(?:/__data.json)?$",
+			"dest": "/"
+		},
+		{
+			"src": "^/community-info/?(?:/__data.json)?$",
+			"dest": "/community-info"
+		},
+		{
+			"src": "^/community/?(?:/__data.json)?$",
+			"dest": "/community"
+		},
+		{
+			"src": "^/fraud/?(?:/__data.json)?$",
+			"dest": "/fraud"
+		},
+		{
+			"src": "^/module-maps/?(?:/__data.json)?$",
+			"dest": "/module-maps"
+		},
+		{
+			"src": "^/reconciliation/?(?:/__data.json)?$",
+			"dest": "/reconciliation"
+		},
+		{
+			"src": "^/reconciliation/([^/]+?)/?(?:/__data.json)?$",
+			"dest": "/reconciliation/[id]"
+		},
+		{
+			"src": "^/transactions/?(?:/__data.json)?$",
+			"dest": "/transactions"
+		},
+		{
+			"src": "^/transactions/([^/]+?)/?(?:/__data.json)?$",
+			"dest": "/transactions/[id]"
+		},
+		{
+			"src": "/.*",
+			"dest": "/![-]/catchall"
+		}
+	],
+	"overrides": {}
+}

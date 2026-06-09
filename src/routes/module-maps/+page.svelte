@@ -41,7 +41,7 @@
         'Full audit trail and controls'
       ]
     },
-    { 
+    {
       title: 'Platform intelligence',
       color: 'teal',
       points: [
