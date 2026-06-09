@@ -2,6 +2,26 @@
 
 export const transactions = [
   {
+    id: 'fraud-WIL-4286',
+    type: 'INV',
+    group: 'Fraud Review',
+    reason: 'Invoice value pattern outlier',
+    documentType: 'INV',
+    status: 'Held for review',
+    processedDate: '04/06/2026 10:42:00',
+    exportedDate: '',
+    sender: 'Willow Office Supplies',
+    transactionNumber: 'WIL-INV-4286',
+    orderNumber: 'WO-1174',
+    transactionDate: '04/06/2026',
+    net: '3,571.67',
+    vat: '714.33',
+    total: '4,286.00',
+    assignedTo: 'AP Review',
+    customerName: 'Open ECX AP',
+    engine: 'Fraud'
+  },
+  {
     id: 'd6f6e5c5-a724-4bfa-985b-2d6ff8829a08',
     type: 'INV',
     group: 'Release Testing - Front End',
@@ -474,7 +494,7 @@ export const fraudSummaryMetrics = [
     tone: 'critical'
   },
   {
-    title: 'Suppliers above threshold',
+    title: 'Suppliers above risk threshold',
     value: '18',
     change: '6 need immediate review',
     tone: 'high'
@@ -576,6 +596,24 @@ export const fraudCallToActions = [
     ]
   },
   {
+    title: 'Invoice bank details differ from supplier record',
+    count: 1,
+    detail: 'An invoice carries bank details that do not match the stored supplier record, with CoP / VoP indicating the payee name may not be the expected supplier.',
+    severity: 'critical',
+    action: 'Review bank details',
+    items: [
+      {
+        caseId: 'FC-1021',
+        entity: 'Riverside Foods',
+        score: 93,
+        issue: 'Invoice remittance account differs from supplier master data and CoP / VoP returned a payee-name mismatch.',
+        owner: 'Fraud Desk',
+        due: 'Today 14:30',
+        nextStep: 'Hold payment, compare invoice bank details to the supplier record, and verify the account using trusted supplier contacts.'
+      }
+    ]
+  },
+  {
     title: 'Duplicate invoice cluster',
     count: 7,
     detail: 'Near-match invoices share amount and invoice dates across two related supplier entities.',
@@ -644,6 +682,26 @@ export const fraudCallToActions = [
         owner: 'Fraud Desk',
         due: 'Tomorrow 15:00',
         nextStep: 'Confirm sender authorisation and related account ownership.'
+      }
+    ]
+  },
+  {
+    title: 'Invoice value pattern outlier',
+    count: 1,
+    detail: 'A supplier invoice is materially outside its normal value band and needs review before it can move on.',
+    severity: 'high',
+    action: 'Review outlier',
+    items: [
+      {
+        caseId: 'FC-1022',
+        transactionId: 'fraud-WIL-4286',
+        transactionReference: 'WIL-INV-4286',
+        entity: 'Willow Office Supplies',
+        score: 78,
+        issue: 'Supplier invoices usually average £126, but a new invoice has been submitted for £4,286 outside its normal pattern.',
+        owner: 'AP Review',
+        due: 'Today 16:00',
+        nextStep: 'Confirm whether the amount reflects a genuine consolidated order, unusual line items, or a potentially substituted invoice.'
       }
     ]
   },
@@ -753,6 +811,10 @@ export const supplierFraudProfiles = [
     invoices30d: 18,
     exposure: 'GBP 142,880',
     bankStatus: 'Changed 6 hrs ago',
+    copVopStatus: 'Changed since check',
+    copVopTone: 'high',
+    copVopCheckedAt: '28 May 2026',
+    bankAccountMask: '**** 1842',
     alertCount: 5,
     topSignals: ['Cross-supplier bank account', 'Duplicate invoice pattern', 'Approval override'],
     nextAction: 'Call back supplier and freeze release'
@@ -767,6 +829,10 @@ export const supplierFraudProfiles = [
     invoices30d: 11,
     exposure: 'GBP 68,420',
     bankStatus: 'Verification failed',
+    copVopStatus: 'Mismatch',
+    copVopTone: 'critical',
+    copVopCheckedAt: 'Today 08:14',
+    bankAccountMask: '**** 7710',
     alertCount: 3,
     topSignals: ['VoP / CoP mismatch', 'New account details', 'Out-of-hours submission'],
     nextAction: 'Obtain independent bank confirmation'
@@ -781,6 +847,10 @@ export const supplierFraudProfiles = [
     invoices30d: 26,
     exposure: 'GBP 51,300',
     bankStatus: 'Stable',
+    copVopStatus: 'Verified',
+    copVopTone: 'good',
+    copVopCheckedAt: '18 May 2026',
+    bankAccountMask: '**** 3904',
     alertCount: 2,
     topSignals: ['Statement mismatch', 'Invoice amount spike', 'First-time approver'],
     nextAction: 'Compare statement exceptions'
@@ -795,6 +865,10 @@ export const supplierFraudProfiles = [
     invoices30d: 9,
     exposure: 'GBP 8,240',
     bankStatus: 'Verified',
+    copVopStatus: 'Verified',
+    copVopTone: 'good',
+    copVopCheckedAt: '22 May 2026',
+    bankAccountMask: '**** 6208',
     alertCount: 1,
     topSignals: ['New supplier', 'Low-value duplicate ruled out', 'No payment hold'],
     nextAction: 'Continue passive monitoring'
@@ -1147,6 +1221,45 @@ export const fraudCases = [
     updatedAt: '1 hr ago',
     updates: [
       { author: 'A. Cheetham', time: '1 hr ago', note: 'Created manual case to consolidate supplier callback responses.' }
+    ]
+  },
+  {
+    id: 'FC-1021',
+    source: 'System',
+    queue: 'Invoice bank details differ from supplier record',
+    entity: 'Riverside Foods',
+    severity: 'critical',
+    status: 'Open',
+    owner: 'Fraud Desk',
+    due: 'Today 14:30',
+    score: 93,
+    summary: 'Invoice RF-77421 includes bank details that differ from the stored Riverside Foods supplier record, and CoP / VoP returned a payee-name mismatch against the expected supplier name.',
+    nextStep: 'Keep payment on hold, compare the invoice remittance account to supplier master data, and verify the account using trusted Riverside Foods contact details before release.',
+    updatedAt: '14 mins ago',
+    updates: [
+      { author: 'System', time: '14 mins ago', note: 'Invoice bank details differ from stored supplier master data for Riverside Foods.' },
+      { author: 'System', time: '12 mins ago', note: 'CoP / VoP check returned a payee-name mismatch against the expected supplier name.' },
+      { author: 'A. Cheetham', time: '9 mins ago', note: 'Fraud Desk asked AP Controls to hold payment and start trusted-contact verification.' }
+    ]
+  },
+  {
+    id: 'FC-1022',
+    transactionId: 'fraud-WIL-4286',
+    transactionReference: 'WIL-INV-4286',
+    source: 'System',
+    queue: 'Invoice value pattern outlier',
+    entity: 'Willow Office Supplies',
+    severity: 'high',
+    status: 'Open',
+    owner: 'AP Review',
+    due: 'Today 16:00',
+    score: 78,
+    summary: 'New invoice submitted at £4,286, well above the supplier’s normal average invoice value of £126.',
+    nextStep: 'Confirm whether the invoice reflects a genuine bulk order, unusual line items, or a potentially substituted document.',
+    updatedAt: '11 mins ago',
+    updates: [
+      { author: 'System', time: '11 mins ago', note: 'Pattern recognition flagged invoice value outside supplier-specific norm band.' },
+      { author: 'M. Patel', time: '5 mins ago', note: 'Source invoice held for manual review pending value confirmation with buyer.' }
     ]
   }
 ];

@@ -1,4 +1,4 @@
-<script>
+﻿<script>
   import {
     fraudAlertFeed,
     fraudCallToActions,
@@ -208,8 +208,8 @@
 
   function liveRiskExplain() {
     return riskExplainPayload('Live risk pressure', 'Amber', 64, [
-      { label: 'Critical open cases', impact: '+24', detail: 'One critical queue remains active and unresolved.' },
-      { label: 'High severity workload', impact: '+16', detail: 'Four high-severity supplier and order cases still require review.' },
+      { label: 'Critical open cases', impact: '+24', detail: 'Three critical queues remain active and unresolved.' },
+      { label: 'High severity workload', impact: '+16', detail: 'Three high-severity supplier and invoice cases still require review.' },
       { label: 'Verification failures', impact: '+12', detail: 'Failed bank verification items are still inside release windows.' },
       { label: 'Recent progress', impact: '-10', detail: 'Resolved cases and recent analyst updates reduce the overall pressure score.' }
     ]);
@@ -305,11 +305,10 @@
         <div class="hero-score amber-risk">
           <div class="hero-topline">
             <span class="hero-label">Live risk pressure</span>
-            <span class="hero-state">Amber</span>
+            <button type="button" class="hero-state" on:click={() => openRiskExplain(liveRiskExplain())}>Amber</button>
           </div>
           <strong>64</strong>
-          <span class="hero-note">Watchlist because 5 critical and high-severity cases remain active</span>
-          <button class="risk-link invert" on:click={() => openRiskExplain(liveRiskExplain())}>Why this score?</button>
+          <span class="hero-note">Watchlist because 6 critical and high-severity cases remain active</span>
         </div>
 
         <div class="metric-grid top-metrics">
@@ -335,19 +334,22 @@
 
             <div class="cta-list">
               {#each fraudCallToActions as action}
-                <button
-                  type="button"
-                  class="cta-card {action.severity}"
-                  on:click={() => openQueueModal(action)}
-                >
+                <article class="cta-card {action.severity}">
                   <div class="cta-topline">
                     <span class="severity-pill {action.severity}">{sentenceCase(action.severity)}</span>
                     <span class="cta-count">{queueCount(action)} open</span>
                   </div>
                   <h4>{action.title}</h4>
                   <p>{action.detail}</p>
-                  <span class="inline-action">{action.action}</span>
-                </button>
+                  <div class="cta-action-row">
+                    <button type="button" class="inline-action" on:click={() => openQueueModal(action)}>{action.action}</button>
+                    {#if action.items?.[0]?.transactionId}
+                      <a class="inline-action transaction-link" href="/transactions/{action.items[0].transactionId}">
+                        Open transaction {action.items[0].transactionReference}
+                      </a>
+                    {/if}
+                  </div>
+                </article>
               {/each}
             </div>
           </article>
@@ -374,6 +376,30 @@
             </div>
           </article>
         </div>
+
+        <div class="feed-stack">
+          <article class="network-alert-card">
+            <div class="network-alert-topline">
+              <span class="severity-pill critical">Alert</span>
+              <div class="network-alert-meta">
+                <span class="signal-chip">Cross-customer intelligence</span>
+                  <button
+                    type="button"
+                    class="info-helper"
+                    aria-label="How shared intelligence works"
+                    title="Shared intelligence uses anonymised fraud signals across the platform. If one customer identifies a fraud case, matching signals can be used to warn other customers without exposing the original customer's transaction details."
+                  >
+                    i
+                  </button>
+                </div>
+              </div>
+            <strong>Northwind Components has been flagged because its bank details match a fraud case raised by another customer</strong>
+            <p>
+              This is not an open fraud case on your account. The open case belongs to another customer on the platform,
+              but the same bank details have been matched here as a precaution. You currently have 3 outstanding
+              invoices from Northwind Components, with total exposure of £18.4k.
+            </p>
+          </article>
 
         <article class="subpanel feed-panel">
           <div class="section-head">
@@ -421,6 +447,7 @@
             </table>
           </div>
         </article>
+        </div>
       </section>
     </div>
   {:else if activeTab === 'suppliers'}
@@ -451,7 +478,15 @@
                 <div><span>30d invoices</span><strong>{supplier.invoices30d}</strong></div>
                 <div><span>Exposure</span><strong>{supplier.exposure}</strong></div>
                 <div><span>Bank status</span><strong>{supplier.bankStatus}</strong></div>
-                <div><span>Open alerts</span><strong>{supplier.alertCount}</strong></div>
+                <div><span>CoP / VoP</span><strong>{supplier.copVopStatus}</strong></div>
+              </div>
+
+              <div class="verification-panel {supplier.copVopTone}">
+                <div>
+                  <span>Onboarding bank check</span>
+                  <strong>{supplier.copVopStatus}</strong>
+                </div>
+                <p>Account {supplier.bankAccountMask} • Checked {supplier.copVopCheckedAt}</p>
               </div>
 
               <div class="signal-group">
@@ -481,6 +516,8 @@
                 <th>30d invoices</th>
                 <th>Exposure</th>
                 <th>Bank status</th>
+                <th>CoP / VoP</th>
+                <th>Checked</th>
                 <th>Open alerts</th>
                 <th>Next action</th>
               </tr>
@@ -497,6 +534,11 @@
                   <td>{supplier.invoices30d}</td>
                   <td>{supplier.exposure}</td>
                   <td>{supplier.bankStatus}</td>
+                  <td>
+                    <span class="status-pill {supplier.copVopTone}">{supplier.copVopStatus}</span>
+                    <div class="table-sub">{supplier.bankAccountMask}</div>
+                  </td>
+                  <td>{supplier.copVopCheckedAt}</td>
                   <td>{supplier.alertCount}</td>
                   <td>{supplier.nextAction}</td>
                 </tr>
@@ -1129,6 +1171,8 @@
   .hero-score .hero-label, .hero-score .hero-note { color: rgba(255,255,255,0.78); }
   .hero-score strong { font-size: 52px; line-height: 1; }
   .hero-state {
+    border: none;
+    cursor: pointer;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -1142,6 +1186,11 @@
     font-weight: 700;
     letter-spacing: 0.04em;
     text-transform: uppercase;
+  }
+  .hero-state:hover,
+  .hero-state:focus-visible {
+    background: rgba(255, 248, 235, 0.28);
+    border-color: rgba(255, 241, 214, 0.42);
   }
 
   .eyebrow, .section-kicker { display: inline-block; text-transform: uppercase; letter-spacing: 0.08em; font-size: 10px; font-weight: 700; }
@@ -1160,7 +1209,45 @@
 
   .content-grid { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(330px, 0.95fr); gap: 18px; margin-top: 18px; }
   .stack { display: flex; flex-direction: column; gap: 18px; }
+  .feed-stack { display: grid; gap: 14px; align-content: start; }
   .subpanel, .feed-panel { padding: 18px; }
+  .network-alert-card {
+    padding: 16px 18px;
+    border-radius: 16px;
+    border: 1px solid #f0c2c2;
+    background: linear-gradient(180deg, #fff5f5 0%, #fff 100%);
+    box-shadow: 0 10px 30px rgba(16, 41, 79, 0.06);
+    display: grid;
+    gap: 10px;
+  }
+  .network-alert-topline {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+  }
+  .network-alert-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .info-helper {
+    width: 22px;
+    height: 22px;
+    border-radius: 999px;
+    border: 1px solid rgba(16, 41, 79, 0.16);
+    background: #fff;
+    color: var(--navy);
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: help;
+  }
+  .network-alert-card strong { color: var(--navy); font-size: 18px; line-height: 1.3; }
+  .network-alert-card p { margin: 0; color: var(--text-dim); line-height: 1.5; }
   .section-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
   .section-head h3, .blueprint-card h4, .cta-card h4, .profile-card h3, .rule-card h4 { margin: 6px 0 0; }
 
@@ -1176,23 +1263,14 @@
   .ghost-btn.solid { background: var(--navy); color: #fff; border-color: var(--navy); }
   .ghost-btn.success { background: #117864; color: #fff; border-color: #117864; }
   .table-link { padding: 6px 12px; }
-  .risk-link {
-    margin-top: auto;
-    border: none;
-    background: transparent;
-    color: var(--navy);
-    font-size: 12px;
-    font-weight: 700;
-    padding: 0;
-    text-align: left;
-  }
-  .risk-link.invert { color: #fff; opacity: 0.85; }
-
   .cta-list, .rule-list { display: grid; gap: 12px; }
+  .cta-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .cta-card { padding: 16px; border-radius: 14px; border: 1px solid var(--border); background: linear-gradient(180deg, #fff 0%, #fafbfc 100%); text-align: left; width: 100%; }
   .cta-card.critical { border-color: #f4c9c9; background: linear-gradient(180deg, #fff 0%, #fff5f5 100%); }
   .cta-card.high { border-color: #f2dcc0; background: linear-gradient(180deg, #fff 0%, #fff8ef 100%); }
   .cta-card.medium { border-color: #cfe4ea; background: linear-gradient(180deg, #fff 0%, #f4fbfd 100%); }
+  .cta-action-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .transaction-link { text-decoration: none; background: var(--navy); color: #fff; border-color: var(--navy); }
   .cta-topline, .rule-topline, .card-footer, .directory-head, .view-toggle, .rule-meta, .cases-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
   .cta-card p, .rule-card p, .queue-item p, .timeline-item p, .case-body-card p { margin: 10px 0 14px; color: var(--text-dim); line-height: 1.5; }
 
@@ -1206,6 +1284,9 @@
   .severity-pill.low { background: #eef2f7; color: var(--navy); }
   .status-pill, .signal-chip, .score-badge.low { background: #eef2f7; color: var(--navy); }
   .status-pill.neutral { background: #f3f4f6; color: var(--navy); }
+  .status-pill.good { background: #e4f7ef; color: #117864; }
+  .status-pill.high { background: #fff0db; color: #b45309; }
+  .status-pill.critical { background: #fbe4e4; color: #a61b1b; }
   .score-badge { min-width: 42px; padding: 6px 12px; }
   .clickable { cursor: pointer; }
   .risk-inline {
@@ -1253,6 +1334,22 @@
   .profile-stats div { border: 1px solid var(--border); border-radius: 12px; padding: 12px; background: var(--panel-alt); }
   .profile-stats span, .rule-meta span, .threshold-card span, .summary-card span, .control-field span { display: block; color: var(--text-dim); font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; }
   .profile-stats strong { display: block; margin-top: 6px; font-size: 15px; color: var(--navy); }
+  .verification-panel {
+    margin-top: 12px;
+    padding: 12px 14px;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    background: #fff;
+    display: grid;
+    gap: 6px;
+  }
+  .verification-panel.good { border-color: #bdebd8; background: #f2fbf7; }
+  .verification-panel.high { border-color: #f2dcc0; background: #fff8ef; }
+  .verification-panel.critical { border-color: #f4c9c9; background: #fff5f5; }
+  .verification-panel div { display: flex; justify-content: space-between; gap: 10px; align-items: center; }
+  .verification-panel span { color: var(--text-dim); font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; font-weight: 700; }
+  .verification-panel strong { color: var(--navy); }
+  .verification-panel p { margin: 0; color: var(--text-dim); font-size: 12px; }
   .signal-group { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
   .card-footer { margin-top: 18px; align-items: flex-end; }
 
@@ -1389,3 +1486,5 @@
     .queue-modal { padding: 16px; }
   }
 </style>
+
+

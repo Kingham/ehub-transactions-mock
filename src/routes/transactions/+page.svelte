@@ -1,5 +1,6 @@
 <script>
-  import { transactions, customers } from '$lib/data.js';
+  import { browser } from '$app/environment';
+  import { transactions, customers, communityTransactions } from '$lib/data.js';
   import { goto } from '$app/navigation';
 
   const columns = [
@@ -13,6 +14,107 @@
   let pageSize = '25';
   let currentPage = 1;
   const pages = [1, 2, 3, 4, 5];
+  let externalSource = '';
+  let externalSummary = '';
+  let externalCount = '';
+  let externalContext = '';
+  let externalReference = '';
+  let externalCustomer = '';
+
+  if (browser) {
+    const params = new URLSearchParams(window.location.search);
+    externalSource = params.get('source') || '';
+    externalSummary = params.get('summary') || '';
+    externalCount = params.get('count') || '';
+    externalContext = params.get('context') || '';
+    externalReference = params.get('reference') || '';
+    externalCustomer = params.get('customer') || '';
+  }
+
+  function formatCommunityProcessedDate(item) {
+    return item.timeline?.[0]?.at || '';
+  }
+
+  function formatCommunityExportedDate(item) {
+    return item.timeline?.find((step) => step.step === 'Paid' || step.step === 'Remittance issued')?.at || '';
+  }
+
+  function communityDocumentType(item) {
+    return item.type === 'Invoice' ? 'INV' : item.type === 'Order' ? 'ORD' : item.type.slice(0, 3).toUpperCase();
+  }
+
+  function mapCommunityTransaction(item) {
+    const total = String(item.amount || '').replace(/^GBP\s*/, '').replace(/^£/, '');
+    return {
+      id: item.id,
+      type: communityDocumentType(item),
+      group: 'Community',
+      reason: item.issue,
+      documentType: communityDocumentType(item),
+      status: item.status,
+      processedDate: formatCommunityProcessedDate(item),
+      exportedDate: formatCommunityExportedDate(item),
+      sender: item.party,
+      transactionNumber: item.reference,
+      orderNumber: item.type === 'Order' ? item.reference : '',
+      transactionDate: formatCommunityProcessedDate(item),
+      net: total,
+      vat: '0.00',
+      total,
+      assignedTo: item.assignee,
+      customerName: item.customer || item.counterparty,
+      engine: 'Community'
+    };
+  }
+
+  function buildFallbackCommunityRow() {
+    const total = '12,450.00';
+    return {
+      id: `community-${externalReference || 'context'}`,
+      type: 'INV',
+      group: 'Community',
+      reason: externalSummary || 'Community transaction',
+      documentType: 'INV',
+      status: externalContext === 'community-payment-holds' ? 'Payment hold' : externalContext === 'community-dispatch-delays' ? 'Dispatch delay' : 'Query open',
+      processedDate: '16/05/2026 09:15:00',
+      exportedDate: '',
+      sender: externalCustomer || 'Community supplier',
+      transactionNumber: externalReference || 'COM-CONTEXT',
+      orderNumber: '',
+      transactionDate: '16/05/2026',
+      net: total,
+      vat: '0.00',
+      total,
+      assignedTo: 'Community team',
+      customerName: externalCustomer || 'Community customer',
+      engine: 'Community'
+    };
+  }
+
+  const communityContextRows = (() => {
+    if (externalSource !== 'community') return [];
+
+    if (externalContext === 'community-payment-holds') {
+      return communityTransactions.filter((item) => item.status === 'Payment hold').map(mapCommunityTransaction);
+    }
+
+    if (externalContext === 'community-dispatch-delays') {
+      return communityTransactions.filter((item) => item.status === 'Dispatch delay').map(mapCommunityTransaction);
+    }
+
+    if (externalContext === 'community-awaiting-external') {
+      return communityTransactions.filter((item) => item.waitingExternal).map(mapCommunityTransaction);
+    }
+
+    if (externalContext === 'community-reference' && externalReference) {
+      const matches = communityTransactions.filter((item) => item.reference === externalReference);
+      return matches.length ? matches.map(mapCommunityTransaction) : [buildFallbackCommunityRow()];
+    }
+
+    return [];
+  })();
+
+  const visibleTransactions = communityContextRows.length ? communityContextRows : transactions;
 
   // Navigate when a row is clicked — skip when the user clicks an
   // interactive element inside the row (checkbox, options dropdown, link).
@@ -39,6 +141,18 @@
   </span>
   <h1>Transactions</h1>
 </div>
+
+{#if externalSource === 'community' && externalSummary}
+  <section class="context-banner">
+    <div>
+      <span class="context-kicker">From Community</span>
+      <strong>{externalSummary}</strong>
+    </div>
+    {#if externalCount}
+      <span class="context-count">{externalCount} in view</span>
+    {/if}
+  </section>
+{/if}
 
 <section class="main-card panel">
   <div class="all-groups-bar">
@@ -105,7 +219,7 @@
       {/each}
       <button class="pg-btn">Next</button>
       <button class="pg-btn">&raquo;</button>
-      <span class="results">11752 Results</span>
+      <span class="results">{externalSource === 'community' ? `${visibleTransactions.length} in view` : externalCount ? `${externalCount} in view` : '11752 Results'}</span>
       <button class="bulk-btn">Bulk Options (0)</button>
       <button class="export-btn">Export</button>
     </div>
@@ -181,7 +295,7 @@
           </tr>
         </thead>
         <tbody>
-          {#each transactions as t}
+          {#each visibleTransactions as t}
             <tr
               class="clickable"
               role="button"
@@ -236,6 +350,40 @@
 </section>
 
 <style>
+  .context-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 14px;
+    padding: 14px 16px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #f6fbfb 0%, #fff 100%);
+    border: 1px solid #d8e7e5;
+  }
+  .context-kicker {
+    display: inline-block;
+    margin-bottom: 4px;
+    color: #0b7f77;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+  .context-banner strong { color: #10294f; font-size: 16px; }
+  .context-count {
+    display: inline-flex;
+    align-items: center;
+    min-height: 32px;
+    padding: 0 12px;
+    border-radius: 999px;
+    background: #fff;
+    border: 1px solid #d8e7e5;
+    color: #10294f;
+    font-size: 12px;
+    font-weight: 700;
+  }
+
   /* Main wrapper card */
   .main-card { padding: 16px 18px; }
 

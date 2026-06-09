@@ -1,0 +1,15 @@
+
+> ehub-transactions-mock@0.0.1 dev
+> vite dev --host 127.0.0.1
+
+[31merror when starting dev server:
+Error: EPERM: operation not permitted, open 'C:\Git\ehub-transactions-mock\.svelte-kit\tsconfig.json'
+    at Object.writeFileSync (node:fs:2425:20)
+    at write (file:///C:/Git/ehub-transactions-mock/node_modules/@sveltejs/kit/src/core/sync/utils.js:31:5)
+    at write_if_changed (file:///C:/Git/ehub-transactions-mock/node_modules/@sveltejs/kit/src/core/sync/utils.js:20:3)
+    at write_tsconfig (file:///C:/Git/ehub-transactions-mock/node_modules/@sveltejs/kit/src/core/sync/write_tsconfig.js:47:2)
+    at Module.init (file:///C:/Git/ehub-transactions-mock/node_modules/@sveltejs/kit/src/core/sync/sync.js:21:2)
+    at dev (file:///C:/Git/ehub-transactions-mock/node_modules/@sveltejs/kit/src/exports/vite/dev/index.js:65:7)
+    at configureServer (file:///C:/Git/ehub-transactions-mock/node_modules/@sveltejs/kit/src/exports/vite/index.js:1014:17)
+    at _createServer (file:///C:/Git/ehub-transactions-mock/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:63337:26)
+    at async CAC.<anonymous> (file:///C:/Git/ehub-transactions-mock/node_modules/vite/dist/node/cli.js:736:20)[39m
