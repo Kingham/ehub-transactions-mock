@@ -1,0 +1,11 @@
+{
+  // Static-asset-only Worker: no server code, just the prerendered SPA shell.
+  // SvelteKit (adapter-static) builds the SPA into ./build with index.html as
+  // the fallback; Cloudflare serves index.html for any unmatched route.
+  "name": "ehub-transactions-mock",
+  "compatibility_date": "2025-06-01",
+  "assets": {
+    "directory": "./build",
+    "not_found_handling": "single-page-application"
+  }
+}

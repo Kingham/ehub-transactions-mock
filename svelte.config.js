@@ -6,7 +6,7 @@ const config = {
   preprocess: vitePreprocess(),
   kit: {
     // SPA mode: serve a single fallback page and render everything client-side.
-    adapter: adapter({ fallback: '200.html' })
+    adapter: adapter({ fallback: 'index.html' })
   }
 };
 
